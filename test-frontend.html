@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Frontend Test</title>
+</head>
+<body>
+    <h1>Testing Frontend Connectivity</h1>
+    <div id="result">Loading...</div>
+    
+    <script>
+        async function testFrontend() {
+            try {
+                const response = await fetch('http://localhost:3000');
+                const text = await response.text();
+                
+                if (text.includes('Histora')) {
+                    document.getElementById('result').innerHTML = 
+                        `<div style="color: green;">✅ Frontend is working! Page loaded successfully.</div>
+                         <div>Response size: ${text.length} characters</div>`;
+                } else {
+                    document.getElementById('result').innerHTML = 
+                        `<div style="color: orange;">⚠️ Frontend loaded but content may be incomplete.</div>`;
+                }
+            } catch (error) {
+                document.getElementById('result').innerHTML = 
+                    `<div style="color: red;">❌ Frontend test failed: ${error.message}</div>`;
+            }
+        }
+        
+        testFrontend();
+    </script>
+</body>
+</html>

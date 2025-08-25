@@ -154,3 +154,4 @@ debug/
 # Documentation builds
 docs/_build/
 site/
+.secrets/

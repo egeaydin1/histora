@@ -9,10 +9,10 @@ export interface Character {
   name_en?: string
   category: string
   era?: string
-  birth_year?: number
+  birth_year: number
   death_year?: number
   birth_place?: string
-  short_bio_tr?: string
+  short_bio_tr: string
   short_bio_en?: string
   personality_traits: string[]
   avatar_url?: string
@@ -56,9 +56,20 @@ export interface User {
   firebase_uid: string
   email: string
   display_name?: string
-  role: 'user' | 'admin'
+  full_name?: string
+  role: 'user' | 'admin' | 'moderator'
+  is_admin?: boolean
+  is_active?: boolean
   language_preference: string
   created_at: string
+  updated_at?: string
+  // Credit and Token System
+  credits?: number
+  total_tokens?: number
+  total_credits_used?: number
+  total_credits_purchased?: number
+  last_login_at?: string
+  current_plan?: string
 }
 
 export interface ApiResponse<T> {

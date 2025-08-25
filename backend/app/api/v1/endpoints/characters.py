@@ -62,18 +62,18 @@ async def get_characters(
     # Placeholder data with MVP characters
     placeholder_characters = [
         {
-            "id": "atatürk-001",
+            "id": "ataturk-001",
             "name": "Mustafa Kemal Atatürk",
             "name_tr": "Mustafa Kemal Atatürk",
             "name_en": "Mustafa Kemal Atatürk",
-            "category": "leader",
+            "category": "leaders",
             "era": "Modern Turkey",
             "birth_year": 1881,
             "death_year": 1938,
             "birth_place": "Selanik",
             "short_bio_tr": "Türkiye Cumhuriyeti'nin kurucusu ve ilk Cumhurbaşkanı",
             "short_bio_en": "Founder and first President of the Republic of Turkey",
-            "personality_traits": ["visionary", "determined", "modern", "strategic"],
+            "personality_traits": ["vizyoner", "kararlı", "modernist", "lider"],
             "avatar_url": "/avatars/ataturk.jpg",
             "status": "published",
             "is_featured": True,
@@ -84,14 +84,14 @@ async def get_characters(
             "name": "Mevlana Celaleddin Rumi",
             "name_tr": "Mevlana Celaleddin Rumi",
             "name_en": "Jalal ad-Din Muhammad Rumi",
-            "category": "philosopher",
+            "category": "philosophers",
             "era": "13th Century",
             "birth_year": 1207,
             "death_year": 1273,
             "birth_place": "Belh",
             "short_bio_tr": "Büyük mutasavvıf, şair ve filozof",
             "short_bio_en": "Great Sufi mystic, poet and philosopher",
-            "personality_traits": ["wise", "spiritual", "poetic", "tolerant"],
+            "personality_traits": ["sevgi dolu", "hoşgörülü", "bilge", "şair"],
             "avatar_url": "/avatars/mevlana.jpg",
             "status": "published",
             "is_featured": True,
@@ -102,14 +102,14 @@ async def get_characters(
             "name": "Konfüçyüs",
             "name_tr": "Konfüçyüs",
             "name_en": "Confucius",
-            "category": "philosopher",
+            "category": "philosophers",
             "era": "Spring and Autumn period",
             "birth_year": -551,
             "death_year": -479,
             "birth_place": "Lu State, China",
             "short_bio_tr": "Çin filozofu ve öğretmen",
             "short_bio_en": "Chinese philosopher and teacher",
-            "personality_traits": ["wise", "ethical", "educational", "traditional"],
+            "personality_traits": ["bilge", "öğretici", "erdemli", "saygılı"],
             "avatar_url": "/avatars/confucius.jpg",
             "status": "published",
             "is_featured": True,
@@ -180,28 +180,74 @@ async def get_character(
     # TODO: Increment view count
     # TODO: Return character details
     
-    # Placeholder response
-    if character_id == "atatürk-001":
-        return {
-            "id": "atatürk-001",
+    # Normalize character ID (handle both Turkish and ASCII versions)
+    normalized_id = character_id.lower().replace("ü", "u").replace("ç", "c")
+    
+    # Character data mapping
+    characters_map = {
+        "ataturk-001": {
+            "id": "ataturk-001",
             "name": "Mustafa Kemal Atatürk",
             "name_tr": "Mustafa Kemal Atatürk",
             "name_en": "Mustafa Kemal Atatürk",
-            "category": "leader",
+            "category": "leaders",
             "era": "Modern Turkey",
             "birth_year": 1881,
             "death_year": 1938,
             "birth_place": "Selanik",
             "short_bio_tr": "Türkiye Cumhuriyeti'nin kurucusu ve ilk Cumhurbaşkanı",
             "short_bio_en": "Founder and first President of the Republic of Turkey",
-            "personality_traits": ["visionary", "determined", "modern", "strategic"],
+            "personality_traits": ["vizyoner", "kararlı", "modernist", "lider"],
             "avatar_url": "/avatars/ataturk.jpg",
             "status": "published",
             "is_featured": True,
-            "view_count": 1251  # Incremented
+            "view_count": 1251
+        },
+        "mevlana-001": {
+            "id": "mevlana-001",
+            "name": "Mevlana Celaleddin Rumi",
+            "name_tr": "Mevlana Celaleddin Rumi",
+            "name_en": "Jalal ad-Din Muhammad Rumi",
+            "category": "philosophers",
+            "era": "13th Century",
+            "birth_year": 1207,
+            "death_year": 1273,
+            "birth_place": "Belh",
+            "short_bio_tr": "Büyük mutasavvıf, şair ve filozof",
+            "short_bio_en": "Great Sufi mystic, poet and philosopher",
+            "personality_traits": ["sevgi dolu", "hoşgörülü", "bilge", "şair"],
+            "avatar_url": "/avatars/mevlana.jpg",
+            "status": "published",
+            "is_featured": True,
+            "view_count": 981
+        },
+        "konfucyus-001": {
+            "id": "konfucyus-001",
+            "name": "Konfüçyüs",
+            "name_tr": "Konfüçyüs",
+            "name_en": "Confucius",
+            "category": "philosophers",
+            "era": "Spring and Autumn period",
+            "birth_year": -551,
+            "death_year": -479,
+            "birth_place": "Lu State, China",
+            "short_bio_tr": "Çin filozofu ve öğretmen",
+            "short_bio_en": "Chinese philosopher and teacher",
+            "personality_traits": ["bilge", "öğretici", "erdemli", "saygılı"],
+            "avatar_url": "/avatars/confucius.jpg",
+            "status": "published",
+            "is_featured": True,
+            "view_count": 751
         }
+    }
+    
+    # Find character by normalized ID
+    character_data = characters_map.get(normalized_id)
+    
+    if character_data:
+        return character_data
     
     raise HTTPException(
         status_code=status.HTTP_404_NOT_FOUND,
-        detail="Character not found"
+        detail=f"Character '{character_id}' not found"
     )

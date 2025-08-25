@@ -158,6 +158,9 @@ class DatabaseManager:
 # Global database manager instance
 db_manager = DatabaseManager()
 
+# Export engine for external access
+engine = db_manager.get_async_engine()
+
 # Dependency functions for FastAPI
 async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
     """Get async database session for FastAPI dependency injection."""

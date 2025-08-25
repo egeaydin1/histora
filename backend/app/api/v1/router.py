@@ -9,7 +9,8 @@ from .endpoints import (
     characters,
     chat,
     admin,
-    health
+    health,
+    usage
 )
 
 api_router = APIRouter()
@@ -43,4 +44,10 @@ api_router.include_router(
     admin.router,
     prefix="/admin",
     tags=["admin"]
+)
+
+api_router.include_router(
+    usage.router,
+    prefix="/usage",
+    tags=["usage", "billing"]
 )

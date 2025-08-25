@@ -24,14 +24,31 @@ async def lifespan(app: FastAPI):
     print(f"🌍 Environment: {settings.environment}")
     print(f"🔧 Debug mode: {settings.debug}")
     
-    # TODO: Initialize database connections
-    # TODO: Initialize Chroma client
-    # TODO: Run migrations if needed
+    # Initialize database
+    try:
+        from app.core.database import init_database
+        db_initialized = await init_database()
+        if db_initialized:
+            print("✅ Database initialized successfully")
+        else:
+            print("❌ Database initialization failed")
+    except Exception as e:
+        print(f"❌ Database error: {e}")
+        import traceback
+        traceback.print_exc()
     
     yield
     
     # Shutdown
     print("🛑 Shutting down Histora backend...")
+    
+    # Cleanup database connections
+    try:
+        from app.core.database import cleanup_database
+        await cleanup_database()
+        print("🧹 Database connections cleaned up")
+    except Exception as e:
+        print(f"⚠️ Database cleanup error: {e}")
 
 
 def create_app() -> FastAPI:
@@ -48,13 +65,24 @@ def create_app() -> FastAPI:
     )
     
     # CORS Middleware
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=settings.cors_origins,
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
+    if settings.is_development:
+        # Development: Allow all origins
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=["*"],
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
+    else:
+        # Production: Restrict to configured origins
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=settings.cors_origins,
+            allow_credentials=True,
+            allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+            allow_headers=["*"],
+        )
     
     # Trusted Host Middleware (production security)
     if settings.is_production:

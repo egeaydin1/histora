@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
+import Navbar from "@/components/Navbar";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -26,7 +27,12 @@ export default function RootLayout({
     <html lang="tr" className="h-full" suppressHydrationWarning>
       <body className={`${inter.className} h-full antialiased bg-gray-50`} suppressHydrationWarning>
         <AuthProvider>
-          {children}
+          <div className="min-h-full">
+            <Navbar />
+            <main>
+              {children}
+            </main>
+          </div>
         </AuthProvider>
       </body>
     </html>

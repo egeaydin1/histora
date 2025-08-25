@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
+import { renderError } from '@/utils/errorHandler'
 import { apiClient } from '@/lib/api'
 import { Character, ChatMessage, ChatResponse } from '@/types'
 import { ChatHeader } from '@/components/chat/ChatHeader'
@@ -24,7 +25,7 @@ const mockCharacter: Character = {
   short_bio_tr: 'Türkiye Cumhuriyeti\'nin kurucusu ve ilk Cumhurbaşkanı',
   short_bio_en: 'Founder and first President of the Republic of Turkey',
   personality_traits: ['visionary', 'determined', 'modern', 'strategic'],
-  avatar_url: '/avatars/ataturk.jpg',
+  avatar_url: '/avatars/ataturk.svg',
   status: 'published',
   is_featured: true,
   view_count: 1250
@@ -63,47 +64,91 @@ export default function ChatPage() {
       if (!characterId) return
 
       try {
-        // For now, use mock data
-        // const response = await apiClient.getCharacter(characterId)
-        // if (response.data) {
-        //   setCharacter(response.data)
-        // }
+        // Decode the character ID in case it's URL encoded
+        const decodedCharacterId = decodeURIComponent(characterId)
+        console.log('Loading character:', decodedCharacterId)
         
-        // Mock different characters
-        if (characterId === 'mevlana-001') {
-          setCharacter({
-            ...mockCharacter,
-            id: 'mevlana-001',
-            name: 'Mevlana Celaleddin Rumi',
-            name_tr: 'Mevlana Celaleddin Rumi',
-            era: '13th Century',
-            short_bio_tr: 'Büyük mutasavvıf, şair ve filozof'
-          })
-          setMessages([{
-            id: generateId(),
-            role: 'assistant',
-            content: 'Selam aleykum, kardeşim. Ben Mevlana Celaleddin Rumi. Aşk, hoşgörü ve maneviyat üzerine sohbet edebiliriz. Kalbinizde ne var?',
-            timestamp: new Date().toISOString()
-          }])
-        } else if (characterId === 'konfucyus-001') {
-          setCharacter({
-            ...mockCharacter,
-            id: 'konfucyus-001',
-            name: 'Konfüçyüs',
-            name_tr: 'Konfüçyüs',
-            era: 'Spring and Autumn Period',
-            short_bio_tr: 'Çin filozofu ve öğretmen'
-          })
-          setMessages([{
-            id: generateId(),
-            role: 'assistant',
-            content: 'Merhaba! Ben Konfüçyüs. Bilgelik, ahlak, eğitim ve toplumsal düzen üzerine konuşabiliriz. Size nasıl yardımcı olabilirim?',
-            timestamp: new Date().toISOString()
-          }])
+        const response = await apiClient.getCharacter(decodedCharacterId, 'tr')
+        
+        if (response.error) {
+          // Enhanced error handling with detailed information
+          const isNetworkError = response.error.includes('timeout') || 
+                                response.error.includes('Connection refused') ||
+                                response.error.includes('Network Error')
+          
+          if (isNetworkError) {
+            console.warn('Network error detected, character may be loaded from cache/mock data')
+            
+            // If we have mock data, the error might be harmless
+            if (response.data) {
+              console.log('Using fallback character data due to network issues')
+              setCharacter(response.data)
+              setMessages([{
+                id: generateId(),
+                role: 'assistant',
+                content: `Merhaba! Ben ${response.data.name}. ${response.data.short_bio_tr || 'Size nasıl yardımcı olabilirim?'} 
+
+⚠️ Not: Şu anda mock verilerle çalışıyorum, backend bağlantısı yok.`,
+                timestamp: new Date().toISOString()
+              }])
+              return
+            }
+          }
+          
+          throw new Error(response.error)
         }
+        
+        if (!response.data) {
+          throw new Error('Character not found')
+        }
+        
+        const data = response.data
+        
+        // Set character data
+        setCharacter(data)
+        
+        // Set initial greeting message
+        setMessages([{
+          id: generateId(),
+          role: 'assistant',
+          content: `Merhaba! Ben ${data.name}. ${data.short_bio_tr || 'Size nasıl yardımcı olabilirim?'}`,
+          timestamp: new Date().toISOString()
+        }])
+        
       } catch (error) {
         console.error('Failed to load character:', error)
-        setError('Karakter yüklenemedi')
+        const errorMessage = error instanceof Error ? error.message : 'Character could not be loaded'
+        
+        // Enhanced error information
+        const isNetworkError = errorMessage.includes('timeout') || 
+                              errorMessage.includes('Connection refused') ||
+                              errorMessage.includes('ECONNABORTED')
+        
+        if (isNetworkError) {
+          setError(`Bağlantı Hatası: Backend sunucusuna ulaşılamıyor. Lütfen backend'in çalıştığını kontrol edin (http://localhost:8000). Hata: ${errorMessage}`)
+        } else {
+          setError(errorMessage)
+        }
+        
+        // Log available characters for debugging
+        console.log('Available characters:')
+        apiClient.getCharacters().then(resp => {
+          if (resp.data) {
+            const available = resp.data.map(c => ({ id: c.id, name: c.name }))
+            console.log(available)
+            
+            // Suggest similar character IDs
+            const normalized = characterId ? decodeURIComponent(characterId).toLowerCase() : ''
+            const suggestions = available.filter(c => 
+              c.id.toLowerCase().includes(normalized) || 
+              normalized.includes(c.id.toLowerCase())
+            )
+            
+            if (suggestions.length > 0) {
+              console.log('Suggested characters:', suggestions)
+            }
+          }
+        })
       }
     }
 
@@ -134,26 +179,23 @@ export default function ChatPage() {
     setMessages(prev => [...prev, userMessage])
 
     try {
-      // Real API call to backend
-      const response = await fetch('http://localhost:8000/api/v1/chat/send', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          character_id: character.id,
-          message: content,
-          session_id: sessionId,
-          language: 'tr',
-          mode: 'chat'
-        })
+      const response = await apiClient.sendMessage({
+        character_id: character.id,
+        message: content,
+        session_id: sessionId || undefined,
+        language: 'tr',
+        mode: 'chat'
       })
-
-      if (!response.ok) {
-        throw new Error(`API Error: ${response.status}`)
+      
+      if (response.error) {
+        throw new Error(response.error)
       }
-
-      const data = await response.json()
+      
+      if (!response.data) {
+        throw new Error('No response from server')
+      }
+      
+      const data = response.data
       
       // Set session ID if we didn't have one
       if (!sessionId) {
@@ -172,7 +214,7 @@ export default function ChatPage() {
 
     } catch (error) {
       console.error('Failed to send message:', error)
-      setError('Mesaj gönderilemedi. Backend bağlantısını kontrol edin.')
+      setError(renderError(error))
       setLoading(false)
     }
   }
@@ -185,12 +227,94 @@ export default function ChatPage() {
     )
   }
 
+  if (error) {
+    const isNetworkError = error.includes('Bağlantı Hatası') || 
+                          error.includes('timeout') || 
+                          error.includes('Connection refused')
+    
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center max-w-md mx-auto p-6">
+          <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${
+            isNetworkError ? 'bg-yellow-100' : 'bg-red-100'
+          }`}>
+            {isNetworkError ? (
+              <svg className="w-8 h-8 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L4.35 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+            ) : (
+              <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L4.35 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+            )}
+          </div>
+          
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            {isNetworkError ? 'Bağlantı Sorunu' : 'Karakter Bulunamadı'}
+          </h2>
+          
+          <p className="text-gray-600 mb-4">{error}</p>
+          
+          {isNetworkError && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+              <h3 className="font-medium text-blue-900 mb-2">🔧 Geliştirici Rehberi:</h3>
+              <div className="text-sm text-blue-800 text-left space-y-1">
+                <div>• Backend'in çalıştığını kontrol edin: <code className="bg-blue-100 px-1 rounded">http://localhost:8000</code></div>
+                <div>• Docker container'ı başlatın: <code className="bg-blue-100 px-1 rounded">docker-compose up</code></div>
+                <div>• Backend log'larını kontrol edin</div>
+                <div>• API_URL environment variable'ını doğrulayın</div>
+              </div>
+            </div>
+          )}
+          
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+            <h3 className="font-medium text-blue-900 mb-2">Mevcut Karakterler:</h3>
+            <div className="text-sm text-blue-800 space-y-1">
+              <div>• <code>ataturk-001</code> - Mustafa Kemal Atatürk</div>
+              <div>• <code>mevlana-001</code> - Mevlana Celaleddin Rumi</div>
+              <div>• <code>konfucyus-001</code> - Konfüçyüs</div>
+            </div>
+          </div>
+          
+          <div className="space-y-3">
+            <button
+              onClick={() => router.push('/')}
+              className="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+            >
+              Ana Sayfaya Dön
+            </button>
+            <button
+              onClick={() => window.location.reload()}
+              className="w-full bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300 transition-colors"
+            >
+              Sayfayı Yenile
+            </button>
+            {isNetworkError && (
+              <button
+                onClick={() => window.open('http://localhost:8000/docs', '_blank')}
+                className="w-full bg-green-200 text-green-700 px-4 py-2 rounded-md hover:bg-green-300 transition-colors"
+              >
+                Backend API Docs'ı Aç
+              </button>
+            )}
+          </div>
+          
+          <div className="mt-4 p-3 bg-gray-100 rounded text-xs text-gray-600">
+            <p><strong>Karakter ID:</strong> <code>{characterId}</code></p>
+            <p><strong>API URL:</strong> <code>{process.env.NEXT_PUBLIC_API_URL}</code></p>
+            <p><strong>Geliştirme Modu:</strong> {process.env.NODE_ENV}</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   if (!character) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Karakter bulunamadı</h2>
-          <p className="text-gray-600">Bu karakter mevcut değil veya yüklenemedi.</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Karakter yükleniyor...</p>
         </div>
       </div>
     )

@@ -1,8 +1,9 @@
 'use client'
 
 import { Character } from '@/types'
-import { cn, getInitials } from '@/lib/utils'
+import { cn } from '@/lib/utils'
 import { ArrowLeftIcon, InformationCircleIcon } from '@heroicons/react/24/outline'
+import { Avatar } from '@/components/ui/Avatar'
 import Link from 'next/link'
 
 interface ChatHeaderProps {
@@ -27,17 +28,12 @@ export function ChatHeader({ character, isOnline = true, className }: ChatHeader
         
         <div className="flex items-center space-x-3">
           <div className="relative">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-sm font-bold">
-              {character.avatar_url ? (
-                <img 
-                  src={character.avatar_url} 
-                  alt={character.name}
-                  className="w-full h-full rounded-full object-cover"
-                />
-              ) : (
-                getInitials(character.name)
-              )}
-            </div>
+            <Avatar 
+              src={character.avatar_url}
+              alt={character.name}
+              name={character.name}
+              size="md"
+            />
             {isOnline && (
               <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-400 border-2 border-white rounded-full"></div>
             )}

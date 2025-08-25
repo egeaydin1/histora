@@ -1,0 +1,39 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15
+    container_name: histora-postgres
+    environment:
+      POSTGRES_DB: histora
+      POSTGRES_USER: histora
+      POSTGRES_PASSWORD: histora123
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U histora -d histora"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # Redis Cache (optional - to be added later)
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: histora-redis
+  #   ports:
+  #     - "6379:6379"
+  #   volumes:
+  #     - redis_data:/data
+  #   restart: unless-stopped
+
+volumes:
+  postgres_data:
+  # redis_data:
+
+networks:
+  default:
+    name: histora-network

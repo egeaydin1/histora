@@ -157,7 +157,8 @@ Türkçe konuş ve karakterine uygun yanıtlar ver. Bazen Çince atasözleri çe
         character_id: str,
         user_message: str,
         chat_history: List[ChatMessage] = None,
-        language: str = "tr"
+        language: str = "tr",
+        system_prompt_override: Optional[str] = None
     ) -> AIResponse:
         """Get AI response for character chat."""
         
@@ -172,12 +173,17 @@ Türkçe konuş ve karakterine uygun yanıtlar ver. Bazen Çince atasözleri çe
         
         # Real OpenRouter API call
         try:
-            character_prompt = self.character_prompts.get(character_id)
-            if not character_prompt:
-                raise ValueError(f"Character {character_id} not found")
+            # Determine which system prompt to use
+            if system_prompt_override:
+                system_prompt = system_prompt_override
+            else:
+                character_prompt = self.character_prompts.get(character_id)
+                if not character_prompt:
+                    raise ValueError(f"Character {character_id} not found")
+                system_prompt = character_prompt.system_prompt
             
             # Build messages
-            messages = [{"role": "system", "content": character_prompt.system_prompt}]
+            messages = [{"role": "system", "content": system_prompt}]
             
             # Add chat history
             if chat_history:
@@ -219,7 +225,7 @@ Türkçe konuş ve karakterine uygun yanıtlar ver. Bazen Çince atasözleri çe
             # Fallback to mock response
             return await self._get_mock_response(character_id, user_message, start_time)
 
-    async def _get_mock_response(self, character_id: str, user_message: str, start_time: float) -> AIResponse:
+    async def _get_mock_response(self, character_id: str, user_message: str, start_time: float, system_prompt_override: Optional[str] = None) -> AIResponse:
         """Generate mock response for development."""
         
         mock_responses = {

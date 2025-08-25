@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { Character, Category } from '@/types'
 import { apiClient } from '@/lib/api'
 import { useAuth } from '@/contexts/AuthContext'
+import { Avatar } from '@/components/ui/Avatar'
 
 // Mock data for development
 const mockCharacters: Character[] = [
@@ -22,7 +23,7 @@ const mockCharacters: Character[] = [
     short_bio_tr: 'Türkiye Cumhuriyeti\'nin kurucusu ve ilk Cumhurbaşkanı',
     short_bio_en: 'Founder and first President of the Republic of Turkey',
     personality_traits: ['visionary', 'determined', 'modern', 'strategic'],
-    avatar_url: '/avatars/ataturk.jpg',
+    avatar_url: '/avatars/ataturk.svg',
     status: 'published',
     is_featured: true,
     view_count: 1250
@@ -40,7 +41,7 @@ const mockCharacters: Character[] = [
     short_bio_tr: 'Büyük mutasavvıf, şair ve filozof',
     short_bio_en: 'Great Sufi mystic, poet and philosopher',
     personality_traits: ['wise', 'spiritual', 'poetic', 'tolerant'],
-    avatar_url: '/avatars/mevlana.jpg',
+    avatar_url: '/avatars/mevlana.svg',
     status: 'published',
     is_featured: true,
     view_count: 980
@@ -58,7 +59,7 @@ const mockCharacters: Character[] = [
     short_bio_tr: 'Çin filozofu ve öğretmen',
     short_bio_en: 'Chinese philosopher and teacher',
     personality_traits: ['wise', 'ethical', 'educational', 'traditional'],
-    avatar_url: '/avatars/confucius.jpg',
+    avatar_url: '/avatars/confucius.svg',
     status: 'published',
     is_featured: true,
     view_count: 750
@@ -102,9 +103,12 @@ function CharacterCard({ character }: { character: Character }) {
   return (
     <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 p-6 border border-gray-100">
       <div className="flex items-center space-x-4">
-        <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-xl font-bold">
-          {character.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)}
-        </div>
+        <Avatar 
+          src={character.avatar_url}
+          alt={character.name}
+          name={character.name}
+          size="lg"
+        />
         <div className="flex-1">
           <h3 className="text-lg font-semibold text-gray-900">{character.name}</h3>
           <p className="text-sm text-gray-600">{character.era}</p>
@@ -120,7 +124,7 @@ function CharacterCard({ character }: { character: Character }) {
           ))}
         </div>
         <Link
-          href={`/chat/${character.id}`}
+          href={`/chat/${encodeURIComponent(character.id)}`}
           className="inline-flex items-center px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
         >
           Sohbet Et
@@ -185,46 +189,6 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center space-x-3">
-              <SparklesIcon className="h-8 w-8 text-blue-600" />
-              <h1 className="text-2xl font-bold text-gray-900">Histora</h1>
-            </div>
-            <nav className="flex items-center space-x-6">
-              <Link href="/characters" className="text-gray-600 hover:text-gray-900">
-                Karakterler
-              </Link>
-              <Link href="/about" className="text-gray-600 hover:text-gray-900">
-                Hakkında
-              </Link>
-              {user ? (
-                <div className="flex items-center space-x-4">
-                  <span className="text-sm text-gray-600">
-                    Merhaba, {user.display_name || user.email}
-                  </span>
-                  <button
-                    onClick={logout}
-                    className="text-gray-600 hover:text-gray-900"
-                  >
-                    Çıkış
-                  </button>
-                </div>
-              ) : (
-                <Link
-                  href="/login"
-                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  Giriş Yap
-                </Link>
-              )}
-            </nav>
-          </div>
-        </div>
-      </header>
-
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-blue-50 to-purple-50 py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
@@ -238,14 +202,14 @@ export default function HomePage() {
           </p>
           <div className="flex items-center justify-center space-x-4">
             <Link
-              href="/characters"
+              href="/karakterler"
               className="bg-blue-600 text-white px-8 py-3 rounded-lg text-lg font-medium hover:bg-blue-700 transition-colors inline-flex items-center"
             >
               <ChatBubbleLeftRightIcon className="w-5 h-5 mr-2" />
               Sohbete Başla
             </Link>
             <Link
-              href="/about"
+              href="/hakkinda"
               className="bg-white text-gray-900 px-8 py-3 rounded-lg text-lg font-medium hover:bg-gray-50 transition-colors border border-gray-200"
             >
               Nasıl Çalışır?
@@ -283,7 +247,7 @@ export default function HomePage() {
           </div>
           <div className="text-center mt-8">
             <Link
-              href="/characters"
+              href="/karakterler"
               className="inline-flex items-center text-blue-600 hover:text-blue-700 font-medium"
             >
               Tüm karakterleri gör

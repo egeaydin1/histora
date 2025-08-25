@@ -86,20 +86,6 @@ class Settings(BaseSettings):
     db_max_overflow: int = Field(default=20, env="DB_MAX_OVERFLOW")
     
     # =============================================================================
-    # VECTOR DATABASE (CHROMA)
-    # =============================================================================
-    chroma_host: str = Field(default="localhost", env="CHROMA_HOST")
-    chroma_port: int = Field(default=8001, env="CHROMA_PORT")
-    chroma_collection_name: str = Field(
-        default="character_embeddings",
-        env="CHROMA_COLLECTION_NAME"
-    )
-    chroma_persist_directory: str = Field(
-        default="./chroma_db",
-        env="CHROMA_PERSIST_DIRECTORY"
-    )
-    
-    # =============================================================================
     # AUTHENTICATION (FIREBASE)
     # =============================================================================
     firebase_project_id: str = Field(default="", env="FIREBASE_PROJECT_ID")
@@ -172,7 +158,7 @@ class Settings(BaseSettings):
     run_migrations_on_start: bool = Field(default=True, env="RUN_MIGRATIONS_ON_START")
     
     class Config:
-        env_file = [".env", ".env.local"]
+        env_file = [".env", "../.env"]
         env_file_encoding = "utf-8"
         case_sensitive = False
         extra = "ignore"
