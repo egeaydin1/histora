@@ -1,0 +1,64 @@
+📂 Histora – Context File
+🎯 Proje Vizyonu
+Histora, kullanıcıların tarihi figürler, filozoflar, bilim insanları, sanatçılar ve liderlerle gerçekçi sohbetler yapabileceği interaktif bir yapay zeka platformudur.
+Amaç: Öğrenme, kültür ve eğlenceyi birleştiren, geçmiş ile bugünü konuşturan dijital bir deneyim sunmak.
+
+🌟 Temel Özellikler
+Karakter Kategorileri
+Liderler: Atatürk, Mao Zedong
+Filozoflar: Mevlana, Konfüçyüs, Laozi
+Bilim İnsanları: İbn-i Sina, Zhang Heng
+Sanatçılar: Mimar Sinan
+Yazar/Şairler: Nazım Hikmet
+Stratejistler: Sun Tzu
+Etkileşim Modları
+Chat Mode → Günlük sohbet
+Advisor Mode → Uzmanlık alanında danışmanlık
+Lesson Mode → Eğitici içerik & mini dersler
+Debate Mode → Birden fazla tarihi figürle panel ortamı
+Özel Özellikler
+Era-Specific Language: Karakterin dönemine uygun dil/üslup
+Personality Emulation: Karakterin bilinen özelliklerini yansıtma
+Works Referencing: Eserlerinden/öğretilerinden alıntılar
+Historical Context: Dönemin olaylarına atıf
+💡 Kullanım Senaryoları
+Öğrenciler → Mimar Sinan’dan bir mimarlık dersi almak
+Meraklılar → Sun Tzu’dan strateji öğrenmek
+Öğretmenler → Mevlana ile sınıfta canlı etkileşim yapmak
+Kültür Severler → Konfüçyüs’ten günlük yaşam için bilgelik sözleri almak
+🔧 Teknik Gereksinimler ve Tech Stack
+Model Yaklaşımı
+Core LLM: GPT-4, Llama 3 veya Mistral
+RAG Layer (Retrieval-Augmented Generation):
+Karakterlerin eserleri, biyografileri, dönem kaynakları vektör veritabanında indekslenecek
+Prompt Orchestration: Dönem dili + karakter kişilik kartlarıyla yönlendirme
+Altyapı
+Frontend (Web App): Next.js (React)
+Backend API: Python (FastAPI) veya Node.js (Express/NestJS)
+Database: PostgreSQL (kullanıcı verileri/oturum yönetimi)
+Vector DB:  Chroma (karakter bilgileri için)
+Authentication: Firebase Auth / Auth0
+Sesli Deneyim
+TTS (Text-to-Speech): ThirtyLabs / OpenAI TTS / Respeecher
+STT (Speech-to-Text): OpenAI Whisper
+Çoklu Dil Desteği
+Öncelikli diller: Türkçe, İngilizce, Çince
+Mimari: Çokdilli embedding (OpenAI, Cohere, LaBSE)
+🚀 MVP (Minimum Viable Product) Planı
+Karakter Seti (10 kişi)
+🇹🇷 Atatürk, Mevlana, Mimar Sinan, Nazım Hikmet, İbn-i Sina
+🇨🇳 Konfüçyüs, Laozi, Sun Tzu, Zhang Heng, Mao Zedong
+
+Özellikler
+Kullanıcı → karakter seçip sohbet başlatır
+Tarihi üsluba uygun yanıt üretme
+Basit web UI (chat ekranı)
+Sonraki Adımlar
+Debate Mode (panel)
+Educational Packages (okullar/kurumlar için)
+Mobile App (iOS/Android)
+Voice Interaction
+🎯 Değer Önerisi
+“Histora, insanlığın en büyük zihinsel mirasını canlı hale getiriyor.
+Kullanıcılar sadece tarihi okumakla kalmıyor, onu doğrudan deneyimliyor.”
+
