@@ -39,7 +39,8 @@ interface CreditPackage {
   popular: boolean
 }
 
-const pricingPlans: PricingPlan[] = [
+// Fallback data for when API is not available
+const fallbackPricingPlans: PricingPlan[] = [
   {
     id: 'free',
     name: 'Ücretsiz',
@@ -105,7 +106,7 @@ const pricingPlans: PricingPlan[] = [
   }
 ]
 
-const creditPackages: CreditPackage[] = [
+const fallbackCreditPackages: CreditPackage[] = [
   {
     id: 'credits-100',
     name: 'Başlangıç',
@@ -295,7 +296,77 @@ function CreditPackageCard({ package: pkg, onPurchase }: { package: CreditPackag
 
 export default function PricingPage() {
   const [selectedTab, setSelectedTab] = useState<'plans' | 'credits'>('plans')
+  const [pricingPlans, setPricingPlans] = useState<PricingPlan[]>([])
+  const [creditPackages, setCreditPackages] = useState<CreditPackage[]>([])
+  const [loading, setLoading] = useState(true)
   const { user } = useAuth()
+
+  useEffect(() => {
+    const loadPricingData = async () => {
+      try {
+        setLoading(true)
+        
+        // Load pricing plans from API
+        const plansResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/pricing/plans`)
+        if (plansResponse.ok) {
+          const plansData = await plansResponse.json()
+          const transformedPlans = plansData.plans.map((plan: any) => ({
+            id: plan.id,
+            name: plan.display_name,
+            description: plan.description,
+            price: plan.price_monthly / 100, // Convert from cents to currency
+            currency: plan.currency === 'TRY' ? 'TL' : plan.currency,
+            period: 'ay',
+            credits: plan.included_credits,
+            features: [
+              `${plan.included_credits} kredi/ay`,
+              `${plan.monthly_token_limit.toLocaleString()} token/ay`,
+              `${plan.monthly_request_limit} istek/gün`,
+              ...(plan.features.rag_access ? ['RAG gelişmiş yanıtlar'] : []),
+              ...(plan.features.custom_characters ? ['Özel karakterler'] : []),
+              ...(plan.features.priority_support ? ['Öncelikli destek'] : []),
+              ...(plan.features.api_access ? ['API erişimi'] : []),
+              ...(plan.features.advanced_analytics ? ['Gelişmiş analitik'] : [])
+            ],
+            limitations: plan.name === 'free' ? [
+              'Sınırlı karakter erişimi',
+              'Günlük sohbet limiti',
+              'Temel destek'
+            ] : [],
+            recommended: plan.is_featured,
+            popular: plan.name === 'basic' // Mark basic plan as popular
+          }))
+          setPricingPlans(transformedPlans)
+        }
+        
+        // Load credit packages from API
+        const creditsResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/pricing/credits`)
+        if (creditsResponse.ok) {
+          const creditsData = await creditsResponse.json()
+          const transformedPackages = creditsData.packages.map((pkg: any) => ({
+            id: pkg.id,
+            name: pkg.display_name,
+            credits: pkg.credit_amount,
+            price: pkg.price / 100, // Convert from cents to currency
+            currency: pkg.currency === 'TRY' ? 'TL' : pkg.currency,
+            bonus: pkg.bonus_credits,
+            popular: pkg.is_popular
+          }))
+          setCreditPackages(transformedPackages)
+        }
+        
+      } catch (error) {
+        console.error('Failed to load pricing data:', error)
+        // Fallback to the original hardcoded data
+        setPricingPlans(fallbackPricingPlans)
+        setCreditPackages(fallbackCreditPackages)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadPricingData()
+  }, [])
 
   const handlePlanSelect = (planId: string) => {
     if (!user && planId !== 'free') {
@@ -392,15 +463,21 @@ export default function PricingPage() {
               </p>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-              {pricingPlans.map((plan) => (
-                <PricingCard 
-                  key={plan.id} 
-                  plan={plan} 
-                  onSelect={handlePlanSelect}
-                />
-              ))}
-            </div>
+            {loading ? (
+              <div className="flex justify-center items-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+                {pricingPlans.map((plan) => (
+                  <PricingCard 
+                    key={plan.id} 
+                    plan={plan} 
+                    onSelect={handlePlanSelect}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -414,15 +491,21 @@ export default function PricingPage() {
               </p>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
-              {creditPackages.map((pkg) => (
-                <CreditPackageCard 
-                  key={pkg.id} 
-                  package={pkg} 
-                  onPurchase={handleCreditPurchase}
-                />
-              ))}
-            </div>
+            {loading ? (
+              <div className="flex justify-center items-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
+                {creditPackages.map((pkg) => (
+                  <CreditPackageCard 
+                    key={pkg.id} 
+                    package={pkg} 
+                    onPurchase={handleCreditPurchase}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         )}
 

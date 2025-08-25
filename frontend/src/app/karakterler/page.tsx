@@ -120,6 +120,7 @@ function CharacterCard({ character }: { character: Character }) {
           src={character.avatar_url}
           alt={character.name}
           name={character.name}
+          characterId={character.id}
           size="lg"
           className="flex-shrink-0"
         />
@@ -219,20 +220,43 @@ export default function KarakterlerPage() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        // Use mock data for now
-        setCharacters(mockCharacters)
+        // Fetch real characters from API
+        const charactersResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/chat/characters`)
+        if (charactersResponse.ok) {
+          const charactersData = await charactersResponse.json()
+          // Transform API data to match frontend interface
+          const transformedCharacters = charactersData.characters.map((char: any) => ({
+            id: char.id,
+            name: char.name,
+            name_tr: char.name,
+            name_en: char.name,
+            category: char.category,
+            era: char.era,
+            birth_year: parseInt(char.era.split('-')[0]) || 0,
+            death_year: char.era.includes('-') ? parseInt(char.era.split('-')[1]) || undefined : undefined,
+            birth_place: '',
+            short_bio_tr: char.description,
+            short_bio_en: char.description,
+            personality_traits: char.personality_traits || [],
+            avatar_url: char.avatar_url,
+            status: 'published' as const,
+            is_featured: char.is_featured,
+            view_count: Math.floor(Math.random() * 1000) + 500 // Random view count for now
+          }))
+          setCharacters(transformedCharacters)
+        } else {
+          console.warn('Failed to fetch characters, using mock data')
+          setCharacters(mockCharacters)
+        }
+        
+        // Use categories from mock for now (can be moved to API later)
         setCategories(mockCategories)
         
-        // Uncomment when backend is ready:
-        // const [charactersRes, categoriesRes] = await Promise.all([
-        //   apiClient.getCharacters(),
-        //   apiClient.getCategories()
-        // ])
-        // 
-        // if (charactersRes.data) setCharacters(charactersRes.data)
-        // if (categoriesRes.data) setCategories(categoriesRes.data)
       } catch (error) {
         console.error('Failed to load data:', error)
+        // Fallback to mock data
+        setCharacters(mockCharacters)
+        setCategories(mockCategories)
       } finally {
         setLoading(false)
       }

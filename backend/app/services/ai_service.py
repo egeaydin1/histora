@@ -160,7 +160,7 @@ Türkçe konuş ve karakterine uygun yanıtlar ver. Bazen Çince atasözleri çe
         language: str = "tr",
         system_prompt_override: Optional[str] = None
     ) -> AIResponse:
-        """Get AI response for character chat."""
+        """Get AI response for character chat with fallback handling."""
         
         import time
         start_time = time.time()
@@ -171,59 +171,88 @@ Türkçe konuş ve karakterine uygun yanıtlar ver. Bazen Çince atasözleri çe
             await asyncio.sleep(1.0 + (len(user_message) * 0.01))  # Realistic delay
             return await self._get_mock_response(character_id, user_message, start_time)
         
-        # Real OpenRouter API call
-        try:
-            # Determine which system prompt to use
-            if system_prompt_override:
-                system_prompt = system_prompt_override
-            else:
-                character_prompt = self.character_prompts.get(character_id)
-                if not character_prompt:
-                    raise ValueError(f"Character {character_id} not found")
-                system_prompt = character_prompt.system_prompt
-            
-            # Build messages
-            messages = [{"role": "system", "content": system_prompt}]
-            
-            # Add chat history
-            if chat_history:
-                for msg in chat_history[-10:]:  # Last 10 messages for context
-                    messages.append({"role": msg.role, "content": msg.content})
-            
-            # Add current user message
-            messages.append({"role": "user", "content": user_message})
-            
-            # Make API call
-            response = await self.client.post(
-                "/chat/completions",
-                json={
-                    "model": self.settings.default_ai_model,
-                    "messages": messages,
-                    "max_tokens": self.settings.ai_max_tokens,
-                    "temperature": self.settings.ai_temperature,
-                    "top_p": self.settings.ai_top_p,
-                    "stream": False
-                }
-            )
-            
-            if response.status_code != 200:
-                raise Exception(f"OpenRouter API error: {response.status_code} - {response.text}")
-            
-            data = response.json()
-            content = data["choices"][0]["message"]["content"]
-            
-            return AIResponse(
-                content=content,
-                character_id=character_id,
-                usage=data.get("usage"),
-                model_used=data.get("model", self.settings.default_ai_model),
-                response_time=time.time() - start_time
-            )
-            
-        except Exception as e:
-            print(f"AI Service Error: {e}")
-            # Fallback to mock response
-            return await self._get_mock_response(character_id, user_message, start_time)
+        # Try primary model first, then fallback model
+        models_to_try = [self.settings.default_ai_model, self.settings.backup_ai_model]
+        
+        for model in models_to_try:
+            try:
+                response = await self._make_api_call(
+                    character_id, user_message, chat_history, 
+                    system_prompt_override, model, start_time
+                )
+                if response:
+                    return response
+            except Exception as e:
+                print(f"Failed with model {model}: {e}")
+                continue
+        
+        # If all models fail, use mock response
+        print("All AI models failed, falling back to mock response")
+        return await self._get_mock_response(character_id, user_message, start_time)
+
+    async def _make_api_call(
+        self,
+        character_id: str,
+        user_message: str,
+        chat_history: List[ChatMessage],
+        system_prompt_override: Optional[str],
+        model: str,
+        start_time: float
+    ) -> Optional[AIResponse]:
+        """Make API call to OpenRouter with specified model."""
+        
+        # Determine which system prompt to use
+        if system_prompt_override:
+            system_prompt = system_prompt_override
+        else:
+            character_prompt = self.character_prompts.get(character_id)
+            if not character_prompt:
+                raise ValueError(f"Character {character_id} not found")
+            system_prompt = character_prompt.system_prompt
+        
+        # Build messages
+        messages = [{"role": "system", "content": system_prompt}]
+        
+        # Add chat history (limit to last 10 messages for context)
+        if chat_history:
+            for msg in chat_history[-10:]:
+                messages.append({"role": msg.role, "content": msg.content})
+        
+        # Add current user message
+        messages.append({"role": "user", "content": user_message})
+        
+        # Make API call
+        response = await self.client.post(
+            "/chat/completions",
+            json={
+                "model": model,
+                "messages": messages,
+                "max_tokens": self.settings.ai_max_tokens,
+                "temperature": self.settings.ai_temperature,
+                "top_p": self.settings.ai_top_p,
+                "stream": False
+            }
+        )
+        
+        if response.status_code != 200:
+            error_text = response.text
+            raise Exception(f"OpenRouter API error for model {model}: {response.status_code} - {error_text}")
+        
+        data = response.json()
+        
+        # Check if response has content
+        if not data.get("choices") or not data["choices"][0].get("message", {}).get("content"):
+            raise Exception(f"Empty response from model {model}")
+        
+        content = data["choices"][0]["message"]["content"]
+        
+        return AIResponse(
+            content=content,
+            character_id=character_id,
+            usage=data.get("usage"),
+            model_used=data.get("model", model),
+            response_time=time.time() - start_time
+        )
 
     async def _get_mock_response(self, character_id: str, user_message: str, start_time: float, system_prompt_override: Optional[str] = None) -> AIResponse:
         """Generate mock response for development."""

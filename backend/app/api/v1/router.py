@@ -10,7 +10,8 @@ from .endpoints import (
     chat,
     admin,
     health,
-    usage
+    usage,
+    pricing
 )
 
 api_router = APIRouter()
@@ -50,4 +51,10 @@ api_router.include_router(
     usage.router,
     prefix="/usage",
     tags=["usage", "billing"]
+)
+
+api_router.include_router(
+    pricing.router,
+    prefix="/pricing",
+    tags=["pricing"]
 )

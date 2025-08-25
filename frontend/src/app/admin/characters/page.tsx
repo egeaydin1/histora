@@ -44,15 +44,40 @@ export default function CharactersPage() {
 
   const fetchCharacters = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/${process.env.NEXT_PUBLIC_API_VERSION}/admin/characters`)
+      const token = localStorage.getItem('auth_token')
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/admin/characters`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+      
       if (!response.ok) {
-        throw new Error('Failed to fetch characters')
+        throw new Error(`Failed to fetch characters: ${response.status} ${response.statusText}`)
       }
+      
       const data = await response.json()
-      setCharacters(data)
+      setCharacters(data.map((char: any) => ({
+        id: char.id,
+        name: char.name,
+        title: char.title || '',
+        category: char.category,
+        nationality: char.nationality || '',
+        birth_year: char.birth_year,
+        death_year: char.death_year,
+        is_published: char.is_published,
+        is_featured: char.is_featured,
+        source_count: 0, // RAG system removed, keeping for UI
+        processed_sources: 0,
+        chunk_count: 0,
+        ready_for_chat: char.is_published,
+        created_at: char.created_at
+      })))
+      setError(null)
     } catch (err) {
+      console.error('Error fetching characters:', err)
       setError(err instanceof Error ? err.message : 'Unknown error')
-      // Mock data for development
+      // Fallback to mock data for development
       setCharacters([
         {
           id: 'ataturk-001',
@@ -85,6 +110,54 @@ export default function CharactersPage() {
           chunk_count: 2,
           ready_for_chat: true,
           created_at: new Date().toISOString()
+        },
+        {
+          id: 'konfucyus-001',
+          name: 'Konfüçyüs',
+          title: 'Çin Filozofu ve Öğretmen',
+          category: 'philosopher',
+          nationality: 'Çinli',
+          birth_year: -551,
+          death_year: -479,
+          is_published: true,
+          is_featured: true,
+          source_count: 1,
+          processed_sources: 1,
+          chunk_count: 2,
+          ready_for_chat: true,
+          created_at: new Date().toISOString()
+        },
+        {
+          id: 'ibn-sina-001',
+          name: 'İbn-i Sina',
+          title: 'Hekim, Filozof ve Bilgin',
+          category: 'scientist',
+          nationality: 'Fars',
+          birth_year: 980,
+          death_year: 1037,
+          is_published: true,
+          is_featured: false,
+          source_count: 1,
+          processed_sources: 1,
+          chunk_count: 2,
+          ready_for_chat: true,
+          created_at: new Date().toISOString()
+        },
+        {
+          id: 'leonardo-001',
+          name: 'Leonardo da Vinci',
+          title: 'Ressam, Mucit ve Bilim İnsanı',
+          category: 'scientist',
+          nationality: 'İtalyan',
+          birth_year: 1452,
+          death_year: 1519,
+          is_published: true,
+          is_featured: true,
+          source_count: 1,
+          processed_sources: 1,
+          chunk_count: 2,
+          ready_for_chat: true,
+          created_at: new Date().toISOString()
         }
       ])
     } finally {
@@ -96,7 +169,7 @@ export default function CharactersPage() {
     try {
       const token = localStorage.getItem('auth_token')
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/${process.env.NEXT_PUBLIC_API_VERSION}/admin/characters/${characterId}`,
+        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/admin/characters/${characterId}`,
         {
           method: 'PATCH',
           headers: { 
@@ -117,11 +190,12 @@ export default function CharactersPage() {
           )
         )
       } else {
-        throw new Error('Failed to update character')
+        const errorData = await response.text()
+        throw new Error(`Failed to update character: ${response.status} ${errorData}`)
       }
     } catch (err) {
       console.error('Failed to toggle publish status:', err)
-      alert('Failed to update character status')
+      alert(`Failed to update character status: ${err instanceof Error ? err.message : 'Unknown error'}`)
     }
   }
 
@@ -133,7 +207,7 @@ export default function CharactersPage() {
     try {
       const token = localStorage.getItem('auth_token')
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/${process.env.NEXT_PUBLIC_API_VERSION}/admin/characters/${characterId}`,
+        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/admin/characters/${characterId}`,
         {
           method: 'DELETE',
           headers: {

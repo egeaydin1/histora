@@ -13,7 +13,6 @@ import {
   DollarSign,
   Package
 } from 'lucide-react'
-import { apiClient } from '@/lib/api'
 
 interface PricingPlan {
   id: string
@@ -73,13 +72,24 @@ export default function AdminPlansPage() {
   const loadData = async () => {
     try {
       setLoading(true)
+      const token = localStorage.getItem('auth_token')
       
       // Load pricing plans from database
-      const plansResponse = await apiClient.getPricingPlans(false) // Get all plans, not just active
-      if (plansResponse.data) {
-        const transformedPlans = plansResponse.data.map((plan: any) => ({
+      const plansResponse = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/admin/pricing-plans`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      )
+      
+      if (plansResponse.ok) {
+        const plansData = await plansResponse.json()
+        const transformedPlans = plansData.map((plan: any) => ({
           id: plan.id,
-          name: plan.display_name,
+          name: plan.name,
           name_tr: plan.display_name,
           description: plan.description || '',
           description_tr: plan.description || '',
@@ -118,17 +128,29 @@ export default function AdminPlansPage() {
           updated_at: plan.updated_at
         }))
         setPlans(transformedPlans)
+      } else {
+        console.error('Failed to load pricing plans:', plansResponse.status)
       }
       
       // Load credit packages from database
-      const packagesResponse = await apiClient.getCreditPackages(false) // Get all packages, not just active
-      if (packagesResponse.data) {
-        const transformedPackages = packagesResponse.data.map((pkg: any) => ({
+      const packagesResponse = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/admin/credit-packages`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      )
+      
+      if (packagesResponse.ok) {
+        const packagesData = await packagesResponse.json()
+        const transformedPackages = packagesData.map((pkg: any) => ({
           id: pkg.id,
           name: pkg.display_name,
           name_tr: pkg.display_name,
           credits: pkg.credit_amount,
-          price: pkg.price / 100, // Convert from cents to TRY
+          price: pkg.price / 100, // Convert from cents
           currency: pkg.currency,
           bonus_credits: pkg.bonus_credits,
           description: pkg.description || '',
@@ -140,12 +162,39 @@ export default function AdminPlansPage() {
           updated_at: pkg.updated_at
         }))
         setCreditPackages(transformedPackages)
+      } else {
+        console.error('Failed to load credit packages:', packagesResponse.status)
       }
       
     } catch (error) {
       console.error('Failed to load pricing data:', error)
       // Fallback to minimal mock data on error
-      setPlans([])
+      setPlans([
+        {
+          id: 'free-plan',
+          name: 'free',
+          name_tr: 'Ücretsiz',
+          description: 'Basic free plan',
+          description_tr: 'Temel ücretsiz plan',
+          price_monthly: 0,
+          price_yearly: 0,
+          currency: 'TRY',
+          features: ['100 tokens/month', '10 requests/day'],
+          features_tr: ['100 token/ay', '10 istek/gün'],
+          limits: {
+            tokens_per_month: 1000,
+            requests_per_day: 10,
+            rag_access: false,
+            custom_characters: false,
+            priority_support: false
+          },
+          is_active: true,
+          is_featured: false,
+          sort_order: 0,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }
+      ])
       setCreditPackages([])
     } finally {
       setLoading(false)
@@ -154,11 +203,67 @@ export default function AdminPlansPage() {
 
   const handleSave = async (id: string, type: 'plan' | 'credit') => {
     try {
-      console.log(`Saving ${type} ${id}`)
-      // TODO: Implement save to database
+      const token = localStorage.getItem('auth_token')
+      
+      if (type === 'plan') {
+        const plan = plans.find(p => p.id === id)
+        if (plan) {
+          const response = await fetch(
+            `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/admin/pricing-plans/${id}`,
+            {
+              method: 'PATCH',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                display_name: plan.name_tr,
+                description: plan.description_tr,
+                price_monthly: plan.price_monthly,
+                price_yearly: plan.price_yearly,
+                is_active: plan.is_active,
+                is_featured: plan.is_featured
+              })
+            }
+          )
+          
+          if (!response.ok) {
+            throw new Error(`Failed to update plan: ${response.status}`)
+          }
+        }
+      } else {
+        const pkg = creditPackages.find(p => p.id === id)
+        if (pkg) {
+          const response = await fetch(
+            `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/admin/credit-packages/${id}`,
+            {
+              method: 'PATCH',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                display_name: pkg.name_tr,
+                description: pkg.description_tr,
+                price: pkg.price * 100, // Convert to cents
+                is_active: pkg.is_active,
+                is_featured: pkg.is_featured
+              })
+            }
+          )
+          
+          if (!response.ok) {
+            throw new Error(`Failed to update credit package: ${response.status}`)
+          }
+        }
+      }
+      
       setEditingItem(null)
+      console.log(`Successfully saved ${type} ${id}`)
+      
     } catch (error) {
       console.error(`Failed to save ${type}:`, error)
+      alert(`Failed to save ${type}: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 
@@ -175,18 +280,65 @@ export default function AdminPlansPage() {
 
   const handleToggleActive = async (id: string, type: 'plan' | 'credit') => {
     try {
+      const token = localStorage.getItem('auth_token')
+      
       if (type === 'plan') {
-        setPlans(prev => prev.map(plan => 
-          plan.id === id ? { ...plan, is_active: !plan.is_active } : plan
-        ))
+        const plan = plans.find(p => p.id === id)
+        if (plan) {
+          const response = await fetch(
+            `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/admin/pricing-plans/${id}`,
+            {
+              method: 'PATCH',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                is_active: !plan.is_active
+              })
+            }
+          )
+          
+          if (response.ok) {
+            setPlans(prev => prev.map(p => 
+              p.id === id ? { ...p, is_active: !p.is_active } : p
+            ))
+          } else {
+            throw new Error(`Failed to toggle plan status: ${response.status}`)
+          }
+        }
       } else {
-        setCreditPackages(prev => prev.map(pkg => 
-          pkg.id === id ? { ...pkg, is_active: !pkg.is_active } : pkg
-        ))
+        const pkg = creditPackages.find(p => p.id === id)
+        if (pkg) {
+          const response = await fetch(
+            `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/admin/credit-packages/${id}`,
+            {
+              method: 'PATCH',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                is_active: !pkg.is_active
+              })
+            }
+          )
+          
+          if (response.ok) {
+            setCreditPackages(prev => prev.map(p => 
+              p.id === id ? { ...p, is_active: !p.is_active } : p
+            ))
+          } else {
+            throw new Error(`Failed to toggle package status: ${response.status}`)
+          }
+        }
       }
+      
       console.log(`Toggled ${type} ${id} active status`)
+      
     } catch (error) {
       console.error(`Failed to toggle ${type} status:`, error)
+      alert(`Failed to toggle ${type} status: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 

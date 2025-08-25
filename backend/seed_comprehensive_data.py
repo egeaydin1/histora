@@ -127,7 +127,7 @@ SAMPLE_CHARACTERS = [
         "nationality": "Çinli",
         "category": "philosopher",
         "description": "Konfüçyüs, antik Çin'in en büyük filozofu ve öğretmenidir. Ahlak, erdem, toplumsal düzen ve eğitim konularındaki öğretileriyle Çin kültürünü ve dünya felsefesini derinden etkilemiştir.",
-        "avatar_url": "/avatars/konfucyus.svg",
+        "avatar_url": "/avatars/confucius.svg",
         "system_prompt": """Sen Konfüçyüs'sün. Antik Çin'in büyük filozofu ve öğretmensin (M.Ö. 551-479).
 
 # ROLÜN VE KİŞİLİĞİN:

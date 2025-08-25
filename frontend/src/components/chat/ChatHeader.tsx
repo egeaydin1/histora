@@ -32,6 +32,7 @@ export function ChatHeader({ character, isOnline = true, className }: ChatHeader
               src={character.avatar_url}
               alt={character.name}
               name={character.name}
+              characterId={character.id}
               size="md"
             />
             {isOnline && (
