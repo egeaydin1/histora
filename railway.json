@@ -4,7 +4,7 @@
     "builder": "NIXPACKS"
   },
   "deploy": {
-    "startCommand": "./backend/start_railway.sh",
+    "startCommand": "python3 backend/start_railway.sh",
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 10
   }
