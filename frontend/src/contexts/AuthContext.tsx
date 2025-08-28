@@ -33,40 +33,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let isSubscribed = true
     
-    // For development, immediately use demo mode to avoid authentication complexity
     const initializeAuth = async () => {
       try {
-        // Check environment - if in development, prefer demo mode
-        const isDevelopment = process.env.NODE_ENV === 'development'
-        const forceDemo = process.env.NEXT_PUBLIC_FORCE_DEMO_MODE === 'true'
-        
-        if (isDevelopment || forceDemo || !firebaseAuth.isConfigured()) {
-          console.log('🎭 Using demo mode for development')
-          enableDemoMode()
-          return
+        // Check if Firebase is configured - if yes, set up auth listener
+        if (firebaseAuth.isConfigured()) {
+          console.log('🔥 Setting up Firebase authentication')
+          setupFirebaseAuth()
+        } else {
+          console.log('🔥 Firebase not configured - authentication available via login forms only')
+          // Don't automatically log in anyone - let them choose to log in
+          setLoading(false)
         }
-        
-        // If Firebase is configured and not in demo mode, set up the auth listener
-        console.log('🔥 Setting up Firebase authentication')
-        setupFirebaseAuth()
       } catch (error) {
-        console.log('🎭 Authentication setup failed, using demo mode:', error)
-        enableDemoMode()
-      }
-    }
-    
-    const enableDemoMode = () => {
-      console.log('🎭 Demo mode enabled')
-      if (isSubscribed) {
-        setUser({
-          id: 'demo-user-001',
-          firebase_uid: 'demo-user-001',
-          email: 'demo@histora.com',
-          display_name: 'Demo User',
-          role: 'user',
-          language_preference: 'tr',
-          created_at: new Date().toISOString()
-        })
+        console.log('🔥 Authentication setup failed:', error)
+        // Don't automatically log in anyone on errors either
         setLoading(false)
       }
     }
@@ -132,85 +112,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     apiClient.client.defaults.headers.common['Authorization'] = `Bearer ${loginResponse.data.access_token}`
                   }
                 } else if (isSubscribed) {
-                  console.warn('Firebase login failed, using fallback user')
-                  // Final fallback to prevent auth loops
-                  setUser({
-                    id: firebaseUser.uid,
-                    firebase_uid: firebaseUser.uid,
-                    email: firebaseUser.email || 'demo@histora.com',
-                    display_name: firebaseUser.displayName || 'Demo User',
-                    role: 'user',
-                    language_preference: 'tr',
-                    created_at: new Date().toISOString()
-                  })
+                  console.warn('Firebase login failed, logging user out')
+                  // Clear user state instead of creating fallback
+                  setUser(null)
+                  localStorage.removeItem('auth_token')
                 }
               } catch (loginError) {
                 console.error('Firebase login attempt failed:', loginError)
                 if (isSubscribed) {
-                  // Set a fallback user to prevent auth loops
-                  setUser({
-                    id: firebaseUser.uid,
-                    firebase_uid: firebaseUser.uid,
-                    email: firebaseUser.email || 'demo@histora.com',
-                    display_name: firebaseUser.displayName || 'Demo User',
-                    role: 'user',
-                    language_preference: 'tr',
-                    created_at: new Date().toISOString()
-                  })
+                  // Log user out instead of creating fallback
+                  setUser(null)
+                  localStorage.removeItem('auth_token')
                 }
               }
             } else if (isSubscribed) {
               console.error('Registration failed:', registerResponse.error)
-              // Set a fallback user to prevent auth loops
-              setUser({
-                id: firebaseUser.uid,
-                firebase_uid: firebaseUser.uid,
-                email: firebaseUser.email || 'demo@histora.com',
-                display_name: firebaseUser.displayName || 'Demo User',
-                role: 'user',
-                language_preference: 'tr',
-                created_at: new Date().toISOString()
-              })
+              // Log user out instead of creating fallback
+              setUser(null)
+              localStorage.removeItem('auth_token')
             }
           } else if (userResponse.error === 'INVALID_TOKEN' && isSubscribed) {
-            console.log('Invalid token, clearing auth and using fallback')
+            console.log('Invalid or expired token, clearing auth state')
             localStorage.removeItem('auth_token')
-            // Set fallback user for invalid token
-            setUser({
-              id: firebaseUser.uid,
-              firebase_uid: firebaseUser.uid,
-              email: firebaseUser.email || 'demo@histora.com',
-              display_name: firebaseUser.displayName || 'Demo User',
-              role: 'user',
-              language_preference: 'tr',
-              created_at: new Date().toISOString()
-            })
+            // Clear user state instead of creating fallback
+            setUser(null)
           } else if (isSubscribed) {
-            console.warn('Backend error or unavailable, using fallback mode. Error:', userResponse.error)
-            // Set fallback user for any other errors (including network errors)
-            setUser({
-              id: firebaseUser.uid,
-              firebase_uid: firebaseUser.uid,
-              email: firebaseUser.email || 'demo@histora.com',
-              display_name: firebaseUser.displayName || 'Demo User (Offline Mode)', 
-              role: 'user',
-              language_preference: 'tr',
-              created_at: new Date().toISOString()
-            })
+            console.warn('Backend error or unavailable, clearing auth state. Error:', userResponse.error)
+            // Clear user state instead of creating fallback offline mode
+            setUser(null)
+            localStorage.removeItem('auth_token')
           }
         } catch (error) {
           console.error('Error syncing user with backend:', error)
           if (isSubscribed) {
-            // Fallback to demo mode to prevent infinite loops
-            setUser({
-              id: firebaseUser.uid,
-              firebase_uid: firebaseUser.uid,
-              email: firebaseUser.email || 'demo@histora.com',
-              display_name: firebaseUser.displayName || 'Demo User',
-              role: 'user',
-              language_preference: 'tr',
-              created_at: new Date().toISOString()
-            })
+            // Clear user state instead of falling back to demo mode
+            setUser(null)
+            localStorage.removeItem('auth_token')
           }
         }
       } else if (isSubscribed) {
@@ -266,17 +203,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
           }
         } catch (backendError) {
-          console.warn('Backend Firebase login failed, using Firebase-only auth:', backendError)
-          // Fallback: just use Firebase user info
-          setUser({
-            id: firebaseUser.uid,
-            firebase_uid: firebaseUser.uid,
-            email: firebaseUser.email || email,
-            display_name: firebaseUser.displayName || email.split('@')[0],
-            role: 'user',
-            language_preference: 'tr',
-            created_at: new Date().toISOString()
-          })
+          console.warn('Backend Firebase login failed:', backendError)
+          // Don't create fallback user - let user try again or contact support
+          throw new Error('Backend authentication failed. Please try again.')
         }
       } else {
         // JWT authentication when Firebase is not configured

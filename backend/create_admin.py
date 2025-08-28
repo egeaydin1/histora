@@ -23,33 +23,50 @@ from app.services.auth_service import auth_service
 
 async def create_admin_user():
     """Create admin user for Histora."""
-    print("👑 Creating Admin User for Histora...")
+    print("👑 Creating Super Admin User for Histora...")
+    print("=" * 50)
     
     try:
         session_gen = get_async_session()
         db = await session_gen.__anext__()
         
         try:
-            # Admin user details
-            admin_email = "admin@histora.com"
-            admin_password = "histora2025!"
-            admin_name = "Histora Admin"
+            # Super admin user details
+            admin_email = "superadmin@histora.com"
+            admin_password = "HistoraSuperAdmin2025#"
+            admin_name = "Histora Super Administrator"
             
             print(f"📧 Email: {admin_email}")
             print(f"🔑 Password: {admin_password}")
-            print(f"👤 Name: {admin_name}")
+            print(f"👤 Full Name: {admin_name}")
+            print(f"🛡️  Role: super_admin")
+            print(f"📅 Creation Time: {__import__('datetime').datetime.now().isoformat()}")
+            print("-" * 50)
             
-            # Check if admin already exists
+            # Check if super admin already exists
             existing_admin = await auth_service.get_user_by_email(admin_email, db)
             
             if existing_admin:
-                print(f"⚠️  Admin user already exists: {admin_email}")
+                print(f"⚠️  Super admin user already exists: {admin_email}")
                 print(f"   User ID: {existing_admin.id}")
                 print(f"   Role: {existing_admin.role}")
+                print(f"   Is Admin: {existing_admin.is_admin}")
                 print(f"   Active: {existing_admin.is_active}")
-                return
+                print(f"   Created At: {existing_admin.created_at}")
+                print(f"   Last Login: {existing_admin.last_login_at or 'Never'}")
+                
+                # Update existing user to super admin if needed
+                if existing_admin.role != "admin" or not existing_admin.is_admin:
+                    print("\n🔄 Updating existing user to super admin...")
+                    existing_admin.role = "admin"
+                    existing_admin.is_admin = True
+                    await db.commit()
+                    await db.refresh(existing_admin)
+                    print("✅ User updated to super admin status!")
+                return existing_admin
             
-            # Create admin user
+            # Create super admin user
+            print("\n🚀 Creating new super admin user...")
             admin_user = await auth_service.create_user(
                 email=admin_email,
                 password=admin_password,
@@ -58,15 +75,22 @@ async def create_admin_user():
                 db=db
             )
             
-            print(f"✅ Admin user created successfully!")
-            print(f"   User ID: {admin_user.id}")
-            print(f"   Email: {admin_user.email}")
-            print(f"   Role: {admin_user.role}")
-            print(f"   Is Admin: {admin_user.is_admin}")
-            print(f"   Created At: {admin_user.created_at}")
+            print("\n✅ Super Admin User Created Successfully!")
+            print("=" * 50)
+            print(f"   🆔 User ID: {admin_user.id}")
+            print(f"   📧 Email: {admin_user.email}")
+            print(f"   👤 Full Name: {admin_user.full_name}")
+            print(f"   🛡️  Role: {admin_user.role}")
+            print(f"   🔐 Is Admin: {admin_user.is_admin}")
+            print(f"   ✅ Is Active: {admin_user.is_active}")
+            print(f"   ✉️  Email Verified: {admin_user.email_verified}")
+            print(f"   📅 Created At: {admin_user.created_at}")
+            print(f"   🔄 Updated At: {admin_user.updated_at}")
+            print(f"   🌐 Language: {admin_user.language_preference}")
             
             # Test login
-            print("\n🔐 Testing admin login...")
+            print("\n🔐 Testing Super Admin Login...")
+            print("-" * 30)
             authenticated_user = await auth_service.authenticate_user(
                 email=admin_email,
                 password=admin_password,
@@ -74,24 +98,41 @@ async def create_admin_user():
             )
             
             if authenticated_user:
-                print("✅ Admin login test successful!")
+                print("✅ Super Admin login test SUCCESSFUL!")
                 
                 # Create access token
                 token_data = {
-                    "user_id": authenticated_user.id,
+                    "user_id": str(authenticated_user.id),
                     "email": authenticated_user.email,
                     "role": authenticated_user.role,
                     "is_admin": authenticated_user.is_admin
                 }
                 
                 access_token = auth_service.create_access_token(token_data)
-                print(f"🎫 Access Token: {access_token[:50]}...")
+                print(f"\n🎫 Access Token Generated:")
+                print(f"   Token (first 50 chars): {access_token[:50]}...")
+                print(f"   Token Length: {len(access_token)} characters")
+                print(f"   Token Type: Bearer")
+                print(f"   Expires In: {auth_service.token_expire_minutes} minutes")
+                
+                # Store token for immediate use
+                with open("super_admin_token.txt", "w") as f:
+                    f.write(access_token)
+                print(f"   💾 Token saved to: super_admin_token.txt")
                 
             else:
-                print("❌ Admin login test failed!")
+                print("❌ Super Admin login test FAILED!")
+                
+            return admin_user
             
         finally:
             await db.close()
+            
+    except Exception as e:
+        print(f"❌ Failed to create super admin user: {e}")
+        import traceback
+        traceback.print_exc()
+        return None
             
     except Exception as e:
         print(f"❌ Failed to create admin user: {e}")
@@ -153,6 +194,124 @@ async def create_test_users():
     except Exception as e:
         print(f"❌ Failed to create test users: {e}")
 
+async def display_system_info():
+    """Display comprehensive system information for the super admin."""
+    print("\n\n" + "="*60)
+    print("📊 HISTORA SUPER ADMIN SYSTEM INFORMATION")
+    print("="*60)
+    
+    try:
+        session_gen = get_async_session()
+        db = await session_gen.__anext__()
+        
+        try:
+            from sqlalchemy import text
+            
+            # Database info
+            print("\n💾 DATABASE INFORMATION:")
+            print("-" * 30)
+            
+            # Count users by role
+            result = await db.execute(text("SELECT role, COUNT(*) as count FROM users GROUP BY role"))
+            user_counts = result.fetchall()
+            total_users = sum(row.count for row in user_counts)
+            
+            print(f"   Total Users: {total_users}")
+            for row in user_counts:
+                print(f"   - {row.role.title()} Users: {row.count}")
+            
+            # Count characters
+            try:
+                result = await db.execute(text("SELECT COUNT(*) as count FROM characters"))
+                character_count = result.scalar()
+                print(f"   Total Characters: {character_count}")
+            except:
+                print(f"   Total Characters: N/A (table may not exist)")
+            
+            # Count active sessions
+            try:
+                result = await db.execute(text("SELECT COUNT(*) as count FROM chat_sessions WHERE created_at > NOW() - INTERVAL '24 hours'"))
+                recent_sessions = result.scalar()
+                print(f"   Recent Sessions (24h): {recent_sessions}")
+            except:
+                print(f"   Recent Sessions (24h): N/A (table may not exist)")
+            
+            # System capabilities
+            print("\n🛠️ SUPER ADMIN CAPABILITIES:")
+            print("-" * 30)
+            print("   ✅ User Management (Create, Update, Delete, Deactivate)")
+            print("   ✅ Character Management (Create, Update, Publish)")
+            print("   ✅ System Settings Configuration")
+            print("   ✅ Pricing Plans & Credit Package Management")
+            print("   ✅ Usage Statistics & Analytics")
+            print("   ✅ Admin Panel Full Access")
+            print("   ✅ API Administration")
+            print("   ✅ Database Administration")
+            
+            # API endpoints available
+            print("\n🌐 ADMIN API ENDPOINTS:")
+            print("-" * 30)
+            print("   POST /api/v1/admin/login - Admin authentication")
+            print("   GET  /api/v1/admin/users - List all users")
+            print("   POST /api/v1/admin/users - Create new user")
+            print("   PUT  /api/v1/admin/users/{id} - Update user")
+            print("   GET  /api/v1/admin/characters - Manage characters")
+            print("   POST /api/v1/admin/characters - Create characters")
+            print("   GET  /api/v1/admin/stats - System statistics")
+            print("   GET  /api/v1/admin/pricing-plans - Pricing management")
+            print("   POST /api/v1/admin/pricing-plans - Create plans")
+            print("   GET  /api/v1/admin/credit-packages - Credit management")
+            
+            # Environment info
+            print("\n🌍 ENVIRONMENT INFORMATION:")
+            print("-" * 30)
+            print(f"   Environment: {os.getenv('ENVIRONMENT', 'Not Set')}")
+            print(f"   Debug Mode: {os.getenv('DEBUG', 'Not Set')}")
+            print(f"   Database URL: {os.getenv('DATABASE_URL', 'Not Set')[:50]}...")
+            print(f"   Backend URL: {os.getenv('BACKEND_URL', 'http://localhost:8000')}")
+            print(f"   Frontend URL: {os.getenv('FRONTEND_URL', 'http://localhost:3000')}")
+            
+        finally:
+            await db.close()
+            
+    except Exception as e:
+        print(f"❌ Failed to get system info: {e}")
+
 if __name__ == "__main__":
-    asyncio.run(create_admin_user())
-    asyncio.run(create_test_users())
+    print("🚀 HISTORA SUPER ADMIN CREATION SCRIPT")
+    print("=" * 50)
+    print("📅 Timestamp:", __import__('datetime').datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+    print("💾 Script Location:", __file__)
+    print("🌐 Environment:", os.getenv('ENVIRONMENT', 'development'))
+    print()
+    
+    async def main():
+        # Create super admin
+        admin_user = await create_admin_user()
+        
+        if admin_user:
+            # Display system information
+            await display_system_info()
+            
+            # Create test users
+            await create_test_users()
+            
+            print("\n\n" + "="*60)
+            print("🎉 SUPER ADMIN CREATION COMPLETED SUCCESSFULLY!")
+            print("="*60)
+            print("🔑 LOGIN CREDENTIALS:")
+            print(f"   Email: superadmin@histora.com")
+            print(f"   Password: HistoraSuperAdmin2025#")
+            print()
+            print("🌐 ACCESS POINTS:")
+            print(f"   Admin Panel: http://localhost:3000/admin")
+            print(f"   API Docs: http://localhost:8000/docs")
+            print(f"   Main App: http://localhost:3000")
+            print()
+            print("💾 TOKEN FILE: super_admin_token.txt")
+            print("   Use this token for API authentication")
+            print("="*60)
+        else:
+            print("❌ Super admin creation failed!")
+    
+    asyncio.run(main())

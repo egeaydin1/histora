@@ -18,27 +18,31 @@ import {
   ArrowUpIcon,
   CheckCircleIcon
 } from '@heroicons/react/24/outline'
+import { apiClient } from '@/lib/api'
 
 interface UserStats {
+  user_id: string
+  credits: number
+  total_credits_purchased: number
+  total_credits_used: number
   total_tokens: number
-  total_credits: number
-  credits_used: number
-  credits_remaining: number
-  total_conversations: number
-  favorite_character: string
-  last_chat_date: string
-  member_since: string
-  current_plan: string
   monthly_usage: {
     tokens: number
     credits: number
-    conversations: number
+    requests: number
   }
+  recent_activity: Array<{
+    type: string
+    amount: number
+    balance_after: number
+    description: string
+    created_at: string
+  }>
 }
 
 interface RecentActivity {
   id: string
-  type: 'chat' | 'credit_purchase' | 'plan_change'
+  type: 'chat' | 'credit_purchase' | 'plan_change' | 'usage' | 'admin_add'
   character_name?: string
   tokens_used?: number
   credits_used?: number
@@ -47,10 +51,25 @@ interface RecentActivity {
   description: string
 }
 
+interface ChatSession {
+  id: string
+  character_id: string
+  character_name: string
+  title?: string
+  message_count: number
+  last_message_at: string
+  created_at: string
+  language: string
+  mode: string
+}
+
 export default function DashboardPage() {
   const [userStats, setUserStats] = useState<UserStats | null>(null)
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([])
+  const [chatSessions, setChatSessions] = useState<ChatSession[]>([])
   const [loading, setLoading] = useState(true)
+  const [favoriteCharacter, setFavoriteCharacter] = useState<string>('')
+  const [currentPlan, setCurrentPlan] = useState<string>('free')
   const { user } = useAuth()
 
   useEffect(() => {
@@ -61,56 +80,85 @@ export default function DashboardPage() {
 
   const loadDashboardData = async () => {
     try {
-      // Mock data for development
-      const mockStats: UserStats = {
-        total_tokens: user?.total_tokens || 15420,
-        total_credits: user?.credits || 250,
-        credits_used: 150,
-        credits_remaining: (user?.credits || 250) - 150,
-        total_conversations: 47,
-        favorite_character: 'Mustafa Kemal Atatürk',
-        last_chat_date: new Date().toISOString(),
-        member_since: user?.created_at || '2024-01-15',
-        current_plan: 'Pro',
-        monthly_usage: {
-          tokens: 8520,
-          credits: 89,
-          conversations: 23
-        }
+      // Load user stats from API
+      const statsResponse = await apiClient.getUserTokenStats()
+      if (statsResponse.data && !statsResponse.error) {
+        setUserStats(statsResponse.data)
       }
 
-      const mockActivity: RecentActivity[] = [
-        {
-          id: '1',
-          type: 'chat',
-          character_name: 'Mustafa Kemal Atatürk',
-          tokens_used: 245,
-          credits_used: 5,
-          timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-          description: 'Atatürk ile Türkiye Cumhuriyeti hakkında sohbet'
-        },
-        {
-          id: '2',
-          type: 'chat',
-          character_name: 'Mevlana',
-          tokens_used: 180,
-          credits_used: 4,
-          timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
-          description: 'Mevlana ile aşk ve hoşgörü üzerine konuşma'
-        },
-        {
-          id: '3',
-          type: 'credit_purchase',
-          amount: 25,
-          timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-          description: '300 kredi satın alındı (+50 bonus)'
-        }
-      ]
+      // Load recent chat sessions
+      const sessionsResponse = await apiClient.getChatSessions(10, 0)
+      if (sessionsResponse.data && !sessionsResponse.error) {
+        setChatSessions(sessionsResponse.data)
+        
+        // Find most used character as favorite
+        const characterCounts: Record<string, number> = {}
+        sessionsResponse.data.forEach((session: any) => {
+          characterCounts[session.character_name] = (characterCounts[session.character_name] || 0) + session.message_count
+        })
+        
+        const mostUsedCharacter = Object.entries(characterCounts)
+          .sort(([,a], [,b]) => b - a)[0]?.[0] || 'Henüz yok'
+        setFavoriteCharacter(mostUsedCharacter)
+      }
 
-      setUserStats(mockStats)
-      setRecentActivity(mockActivity)
+      // Load credit transactions for recent activity
+      const transactionsResponse = await apiClient.getCreditTransactions(10, 0)
+      if (transactionsResponse.data && !transactionsResponse.error) {
+        const activities: RecentActivity[] = transactionsResponse.data.transactions.map((tx: any, index: number) => ({
+          id: tx.id || `tx-${index}`,
+          type: tx.type as RecentActivity['type'],
+          amount: tx.amount,
+          timestamp: tx.created_at,
+          description: tx.description,
+          tokens_used: tx.tokens_consumed,
+          credits_used: Math.abs(tx.amount)
+        }))
+        
+        // Add recent chat sessions to activity
+        const chatActivities: RecentActivity[] = sessionsResponse.data
+          ?.slice(0, 5)
+          .map((session: any, index: number) => ({
+            id: `chat-${session.id}`,
+            type: 'chat' as const,
+            character_name: session.character_name,
+            timestamp: session.last_message_at,
+            description: `${session.character_name} ile sohbet - ${session.message_count} mesaj`,
+            credits_used: session.message_count * 2 // Estimate 2 credits per message
+          })) || []
+        
+        // Combine and sort all activities by timestamp
+        const allActivities = [...activities, ...chatActivities]
+          .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+          .slice(0, 10)
+        
+        setRecentActivity(allActivities)
+      }
+
+      // Try to get quota info for current plan
+      const quotaResponse = await apiClient.getQuotaInfo()
+      if (quotaResponse.data && !quotaResponse.error) {
+        setCurrentPlan(quotaResponse.data.plan_type || 'free')
+      }
+
     } catch (error) {
       console.error('Failed to load dashboard data:', error)
+      // Fallback to basic data from user object if API fails
+      if (user) {
+        setUserStats({
+          user_id: user.id,
+          credits: user.credits || 0,
+          total_credits_purchased: user.total_credits_purchased || 0,
+          total_credits_used: user.total_credits_used || 0,
+          total_tokens: user.total_tokens || 0,
+          monthly_usage: {
+            tokens: 0,
+            credits: 0,
+            requests: 0
+          },
+          recent_activity: []
+        })
+      }
     } finally {
       setLoading(false)
     }
@@ -182,7 +230,9 @@ export default function DashboardPage() {
     )
   }
 
-  const creditsPercentage = userStats ? Math.round((userStats.credits_used / (userStats.credits_used + userStats.credits_remaining)) * 100) : 0
+  const creditsPercentage = userStats && userStats.total_credits_purchased > 0 
+    ? Math.round((userStats.total_credits_used / userStats.total_credits_purchased) * 100) 
+    : 0
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -210,14 +260,14 @@ export default function DashboardPage() {
                   <dl>
                     <dt className="text-sm font-medium text-gray-500 truncate">Mevcut Krediler</dt>
                     <dd className="text-2xl font-bold text-gray-900">
-                      {formatNumber(userStats?.credits_remaining || 0)}
+                      {formatNumber(userStats?.credits || 0)}
                     </dd>
                   </dl>
                 </div>
               </div>
               <div className="mt-4">
                 <div className="flex items-center justify-between text-sm text-gray-600">
-                  <span>Kullanılan: {userStats?.credits_used || 0}</span>
+                  <span>Kullanılan: {userStats?.total_credits_used || 0}</span>
                   <span>{creditsPercentage}%</span>
                 </div>
                 <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
@@ -266,7 +316,7 @@ export default function DashboardPage() {
                   <dl>
                     <dt className="text-sm font-medium text-gray-500 truncate">Sohbet Sayısı</dt>
                     <dd className="text-2xl font-bold text-gray-900">
-                      {formatNumber(userStats?.total_conversations || 0)}
+                      {formatNumber(chatSessions.length || 0)}
                     </dd>
                   </dl>
                 </div>
@@ -274,7 +324,7 @@ export default function DashboardPage() {
               <div className="mt-4">
                 <div className="flex items-center text-sm text-purple-600">
                   <ArrowUpIcon className="w-4 h-4 mr-1" />
-                  <span>Bu ay: {userStats?.monthly_usage.conversations || 0}</span>
+                  <span>Bu ay: {userStats?.monthly_usage.requests || 0}</span>
                 </div>
               </div>
             </div>
@@ -291,7 +341,7 @@ export default function DashboardPage() {
                   <dl>
                     <dt className="text-sm font-medium text-gray-500 truncate">Mevcut Plan</dt>
                     <dd className="text-2xl font-bold text-gray-900">
-                      {userStats?.current_plan || 'Ücretsiz'}
+                      {currentPlan === 'free' ? 'Ücretsiz' : currentPlan.charAt(0).toUpperCase() + currentPlan.slice(1)}
                     </dd>
                   </dl>
                 </div>
@@ -411,11 +461,11 @@ export default function DashboardPage() {
             </div>
             <div>
               <span className="text-sm text-gray-500">Üyelik Tarihi:</span>
-              <p className="font-medium">{formatDate(userStats?.member_since || user.created_at || '')}</p>
+              <p className="font-medium">{formatDate(user.created_at || '')}</p>
             </div>
             <div>
               <span className="text-sm text-gray-500">Favori Karakter:</span>
-              <p className="font-medium">{userStats?.favorite_character || 'Henüz yok'}</p>
+              <p className="font-medium">{favoriteCharacter || 'Henüz yok'}</p>
             </div>
           </div>
           <div className="mt-6 flex items-center space-x-4">

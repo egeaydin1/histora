@@ -156,15 +156,6 @@ export default function AdminLoginPage() {
               )}
             </button>
           </div>
-
-          <div className="text-center">
-            <div className="text-sm text-gray-600">
-              Demo Admin Credentials:
-            </div>
-            <div className="text-xs text-gray-500 mt-1">
-              Email: admin@histora.com | Password: admin123
-            </div>
-          </div>
         </form>
 
         <div className="text-center">

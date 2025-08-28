@@ -143,15 +143,6 @@ export default function LoginPage() {
             </Link>
           </div>
         </form>
-
-        {/* Demo Accounts */}
-        <div className="mt-6 p-4 bg-blue-50 rounded-md">
-          <h3 className="text-sm font-medium text-blue-900 mb-2">Demo Hesapları:</h3>
-          <div className="text-xs text-blue-700 space-y-1">
-            <div>E-posta: demo@histora.com</div>
-            <div>Şifre: demo123</div>
-          </div>
-        </div>
       </div>
     </div>
   )

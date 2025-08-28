@@ -18,21 +18,13 @@ import {
   CalendarIcon,
   DocumentTextIcon
 } from '@heroicons/react/24/outline'
+import { apiClient } from '@/lib/api'
+import type { User } from '@/types'
 
-interface User {
-  id: string
-  email: string
-  display_name: string
-  role: string
-  is_active: boolean
-  credits: number
-  total_tokens: number
-  total_credits_used: number
-  total_credits_purchased: number
-  last_login_at: string
-  created_at: string
-  current_plan: string
-  monthly_usage: {
+// Extended interface for display purposes
+interface DisplayUser extends User {
+  current_plan?: string
+  monthly_usage?: {
     tokens: number
     credits: number
     conversations: number
@@ -44,8 +36,17 @@ interface UserFilters {
   role: string
   plan: string
   status: string
-  sortBy: 'created_at' | 'last_login_at' | 'credits' | 'tokens'
+  sortBy: 'created_at' | 'last_login_at' | 'credits' | 'total_tokens'
   sortOrder: 'asc' | 'desc'
+}
+
+interface AdminStats {
+  total_users: number
+  active_users: number
+  admin_users: number
+  users_by_role: Record<string, number>
+  auth_method: string
+  token_expire_minutes: number
 }
 
 const roles = [
@@ -69,9 +70,10 @@ const statuses = [
 ]
 
 export default function AdminUsersPage() {
-  const [users, setUsers] = useState<User[]>([])
-  const [filteredUsers, setFilteredUsers] = useState<User[]>([])
+  const [users, setUsers] = useState<DisplayUser[]>([])
+  const [filteredUsers, setFilteredUsers] = useState<DisplayUser[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [selectedUsers, setSelectedUsers] = useState<string[]>([])
   const [showCreditModal, setShowCreditModal] = useState(false)
   const [selectedUserId, setSelectedUserId] = useState<string>('')
@@ -86,13 +88,13 @@ export default function AdminUsersPage() {
     sortOrder: 'desc'
   })
 
-  const [stats, setStats] = useState({
+  const [stats, setStats] = useState<AdminStats>({
     total_users: 0,
     active_users: 0,
-    total_credits_distributed: 0,
-    total_tokens_consumed: 0,
-    monthly_new_users: 0,
-    monthly_revenue: 0
+    admin_users: 0,
+    users_by_role: {},
+    auth_method: '',
+    token_expire_minutes: 0
   })
 
   useEffect(() => {
@@ -105,68 +107,54 @@ export default function AdminUsersPage() {
 
   const loadUsers = async () => {
     try {
-      // Mock data for development
-      const mockUsers: User[] = [
-        {
-          id: '1',
-          email: 'ahmet@example.com',
-          display_name: 'Ahmet Yılmaz',
-          role: 'user',
-          is_active: true,
-          credits: 150,
-          total_tokens: 12450,
-          total_credits_used: 89,
-          total_credits_purchased: 300,
-          last_login_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-          created_at: '2024-01-15T10:00:00Z',
-          current_plan: 'pro',
-          monthly_usage: { tokens: 3200, credits: 25, conversations: 14 }
-        },
-        {
-          id: '2',
-          email: 'elif@example.com',
-          display_name: 'Elif Demir',
-          role: 'user',
-          is_active: true,
-          credits: 50,
-          total_tokens: 8920,
-          total_credits_used: 156,
-          total_credits_purchased: 200,
-          last_login_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-          created_at: '2024-01-10T14:30:00Z',
-          current_plan: 'free',
-          monthly_usage: { tokens: 1800, credits: 45, conversations: 8 }
-        },
-        {
-          id: '3',
-          email: 'mehmet@example.com',
-          display_name: 'Mehmet Kaya',
-          role: 'moderator',
-          is_active: true,
-          credits: 500,
-          total_tokens: 25600,
-          total_credits_used: 234,
-          total_credits_purchased: 750,
-          last_login_at: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
-          created_at: '2024-01-05T09:15:00Z',
-          current_plan: 'premium',
-          monthly_usage: { tokens: 5400, credits: 67, conversations: 28 }
-        }
-      ]
-
-      const mockStats = {
-        total_users: 1247,
-        active_users: 892,
-        total_credits_distributed: 45230,
-        total_tokens_consumed: 1240567,
-        monthly_new_users: 156,
-        monthly_revenue: 8950
+      setLoading(true)
+      setError(null)
+      
+      // Get admin token and set it for API client
+      const adminToken = localStorage.getItem('histora_admin_token')
+      if (adminToken) {
+        apiClient.client.defaults.headers.common['Authorization'] = `Bearer ${adminToken}`
       }
-
-      setUsers(mockUsers)
-      setStats(mockStats)
+      
+      // Load admin users
+      const usersResponse = await apiClient.getAdminUsers({ limit: 100 })
+      
+      if (usersResponse.error) {
+        throw new Error(usersResponse.error)
+      }
+      
+      // Transform users to include display fields
+      const displayUsers: DisplayUser[] = (usersResponse.data || []).map(user => ({
+        ...user,
+        // Add default values for fields that might not be present
+        display_name: user.display_name || user.full_name || user.email.split('@')[0],
+        credits: user.credits || 0,
+        total_tokens: user.total_tokens || 0,
+        total_credits_used: user.total_credits_used || 0,
+        total_credits_purchased: user.total_credits_purchased || 0,
+        current_plan: user.current_plan || 'free',
+        monthly_usage: {
+          tokens: 0, // TODO: Get from usage API
+          credits: 0, // TODO: Get from usage API  
+          conversations: 0 // TODO: Get from chat sessions API
+        }
+      }))
+      
+      setUsers(displayUsers)
+      
+      // Load admin stats
+      const statsResponse = await apiClient.getAdminStats()
+      
+      if (statsResponse.data) {
+        setStats({
+          ...statsResponse.data,
+          admin_users: statsResponse.data.admin_users || statsResponse.data.users_by_role?.admin || 0
+        })
+      }
+      
     } catch (error) {
       console.error('Failed to load users:', error)
+      setError(error instanceof Error ? error.message : 'Failed to load users')
     } finally {
       setLoading(false)
     }
@@ -179,7 +167,8 @@ export default function AdminUsersPage() {
     if (filters.search) {
       filtered = filtered.filter(user =>
         user.email.toLowerCase().includes(filters.search.toLowerCase()) ||
-        user.display_name.toLowerCase().includes(filters.search.toLowerCase())
+        (user.display_name?.toLowerCase().includes(filters.search.toLowerCase()) || false) ||
+        (user.full_name?.toLowerCase().includes(filters.search.toLowerCase()) || false)
       )
     }
 
@@ -215,7 +204,7 @@ export default function AdminUsersPage() {
           aValue = a.credits || 0
           bValue = b.credits || 0
           break
-        case 'tokens':
+        case 'total_tokens':
           aValue = a.total_tokens || 0
           bValue = b.total_tokens || 0
           break
@@ -251,15 +240,92 @@ export default function AdminUsersPage() {
   const handleAddCredits = async () => {
     if (selectedUserId && creditAmount > 0) {
       try {
-        console.log(`Adding ${creditAmount} credits to user ${selectedUserId}`)
-        // TODO: Implement credit addition API call
+        // Ensure admin token is set
+        const adminToken = localStorage.getItem('histora_admin_token')
+        if (adminToken) {
+          apiClient.client.defaults.headers.common['Authorization'] = `Bearer ${adminToken}`
+        }
+        
+        const response = await apiClient.addUserCredits(
+          selectedUserId, 
+          creditAmount, 
+          `Admin added ${creditAmount} credits`
+        )
+        
+        if (response.error) {
+          throw new Error(response.error)
+        }
+        
         setShowCreditModal(false)
         setCreditAmount(0)
         setSelectedUserId('')
-        loadUsers() // Refresh data
+        
+        // Refresh users data
+        loadUsers()
+        
+        // Show success message
+        alert(`Successfully added ${creditAmount} credits!`)
       } catch (error) {
         console.error('Failed to add credits:', error)
+        alert(`Failed to add credits: ${error instanceof Error ? error.message : 'Unknown error'}`)
       }
+    }
+  }
+
+  const handleDeleteUser = async (userId: string, userEmail: string) => {
+    if (!confirm(`Are you sure you want to delete user "${userEmail}"? This action cannot be undone.`)) {
+      return
+    }
+
+    try {
+      // Ensure admin token is set
+      const adminToken = localStorage.getItem('histora_admin_token')
+      if (adminToken) {
+        apiClient.client.defaults.headers.common['Authorization'] = `Bearer ${adminToken}`
+      }
+
+      const response = await apiClient.deleteUser(userId)
+      
+      if (response.error) {
+        throw new Error(response.error)
+      }
+
+      // Remove user from local state
+      setUsers(prev => prev.filter(user => user.id !== userId))
+      alert('User deleted successfully!')
+    } catch (error) {
+      console.error('Failed to delete user:', error)
+      alert(`Failed to delete user: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
+
+  const handleToggleUserStatus = async (userId: string, currentStatus: boolean, userEmail: string) => {
+    const action = currentStatus ? 'deactivate' : 'activate'
+    if (!confirm(`Are you sure you want to ${action} user "${userEmail}"?`)) {
+      return
+    }
+
+    try {
+      // Ensure admin token is set
+      const adminToken = localStorage.getItem('histora_admin_token')
+      if (adminToken) {
+        apiClient.client.defaults.headers.common['Authorization'] = `Bearer ${adminToken}`
+      }
+
+      const response = await apiClient.toggleUserStatus(userId, !currentStatus)
+      
+      if (response.error) {
+        throw new Error(response.error)
+      }
+
+      // Update user in local state
+      setUsers(prev => prev.map(user => 
+        user.id === userId ? { ...user, is_active: !currentStatus } : user
+      ))
+      alert(`User ${action}d successfully!`)
+    } catch (error) {
+      console.error('Failed to toggle user status:', error)
+      alert(`Failed to ${action} user: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 
@@ -283,6 +349,26 @@ export default function AdminUsersPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="bg-white p-8 rounded-lg shadow-sm border border-red-200 max-w-md">
+          <div className="text-center">
+            <XCircleIcon className="w-16 h-16 text-red-500 mx-auto mb-4" />
+            <h2 className="text-xl font-bold text-gray-900 mb-2">Veri Yüklenemedi</h2>
+            <p className="text-gray-600 mb-4">{error}</p>
+            <button
+              onClick={() => loadUsers()}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+            >
+              Tekrar Dene
+            </button>
+          </div>
+        </div>
       </div>
     )
   }
@@ -347,8 +433,8 @@ export default function AdminUsersPage() {
                 <CreditCardIcon className="h-6 w-6 text-purple-600" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Dağıtılan Kredi</p>
-                <p className="text-2xl font-bold text-gray-900">{formatNumber(stats.total_credits_distributed)}</p>
+                <p className="text-sm font-medium text-gray-500">Admin Kullanıcı</p>
+                <p className="text-2xl font-bold text-gray-900">{formatNumber(stats.admin_users)}</p>
               </div>
             </div>
           </div>
@@ -359,8 +445,8 @@ export default function AdminUsersPage() {
                 <ChartBarIcon className="h-6 w-6 text-orange-600" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Toplam Token</p>
-                <p className="text-2xl font-bold text-gray-900">{formatNumber(stats.total_tokens_consumed)}</p>
+                <p className="text-sm font-medium text-gray-500">Normal Kullanıcı</p>
+                <p className="text-2xl font-bold text-gray-900">{formatNumber(stats.users_by_role.user || 0)}</p>
               </div>
             </div>
           </div>
@@ -371,8 +457,8 @@ export default function AdminUsersPage() {
                 <ArrowTrendingUpIcon className="h-6 w-6 text-green-600" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Aylık Yeni</p>
-                <p className="text-2xl font-bold text-gray-900">{formatNumber(stats.monthly_new_users)}</p>
+                <p className="text-sm font-medium text-gray-500">Moderatör</p>
+                <p className="text-2xl font-bold text-gray-900">{formatNumber(stats.users_by_role.moderator || 0)}</p>
               </div>
             </div>
           </div>
@@ -383,8 +469,8 @@ export default function AdminUsersPage() {
                 <DocumentTextIcon className="h-6 w-6 text-indigo-600" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Aylık Gelir</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.monthly_revenue}₺</p>
+                <p className="text-sm font-medium text-gray-500">Token Süresi</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.token_expire_minutes}dk</p>
               </div>
             </div>
           </div>
@@ -443,7 +529,7 @@ export default function AdminUsersPage() {
                 <option value="created_at">Katılım Tarihi</option>
                 <option value="last_login_at">Son Giriş</option>
                 <option value="credits">Kredi</option>
-                <option value="tokens">Token</option>
+                <option value="total_tokens">Token</option>
               </select>
               
               <button
@@ -499,11 +585,11 @@ export default function AdminUsersPage() {
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-10 w-10">
                           <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-sm font-bold">
-                            {user.display_name?.charAt(0) || user.email.charAt(0)}
+                            {(user.display_name || user.full_name || user.email)?.charAt(0)?.toUpperCase() || '?'}
                           </div>
                         </div>
                         <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">{user.display_name}</div>
+                          <div className="text-sm font-medium text-gray-900">{user.display_name || user.full_name || 'No Name'}</div>
                           <div className="text-sm text-gray-500">{user.email}</div>
                         </div>
                       </div>
@@ -514,28 +600,28 @@ export default function AdminUsersPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getPlanColor(user.current_plan)}`}>
-                        {user.current_plan}
+                      <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getPlanColor(user.current_plan || 'free')}`}>
+                        {user.current_plan || 'free'}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{formatNumber(user.credits)}</div>
+                      <div className="text-sm text-gray-900">{formatNumber(user.credits || 0)}</div>
                       <div className="text-xs text-gray-500">
-                        Kullanılan: {formatNumber(user.total_credits_used)}
+                        Kullanılan: {formatNumber(user.total_credits_used || 0)}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{formatNumber(user.total_tokens)}</div>
+                      <div className="text-sm text-gray-900">{formatNumber(user.total_tokens || 0)}</div>
                       <div className="text-xs text-gray-500">
-                        Bu ay: {formatNumber(user.monthly_usage.tokens)}
+                        Bu ay: {formatNumber(user.monthly_usage?.tokens || 0)}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      <div>{user.monthly_usage.conversations} sohbet</div>
-                      <div>{formatNumber(user.monthly_usage.credits)} kredi</div>
+                      <div>{user.monthly_usage?.conversations || 0} sohbet</div>
+                      <div>{formatNumber(user.monthly_usage?.credits || 0)} kredi</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {formatDate(user.last_login_at)}
+                      {user.last_login_at ? formatDate(user.last_login_at) : 'Hiç giriş yapmamış'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center space-x-2">
@@ -550,10 +636,24 @@ export default function AdminUsersPage() {
                           <CreditCardIcon className="w-4 h-4" />
                         </button>
                         <button
+                          onClick={() => handleToggleUserStatus(user.id, user.is_active || false, user.email)}
+                          className={`${user.is_active ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900'}`}
+                          title={user.is_active ? 'Kullanıcıyı Pasifleştir' : 'Kullanıcıyı Aktifleştir'}
+                        >
+                          {user.is_active ? <XCircleIcon className="w-4 h-4" /> : <CheckCircleIcon className="w-4 h-4" />}
+                        </button>
+                        <button
                           className="text-gray-600 hover:text-gray-900"
                           title="Detayları Görüntüle"
                         >
                           <EyeIcon className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteUser(user.id, user.email)}
+                          className="text-red-600 hover:text-red-900"
+                          title="Kullanıcıyı Sil"
+                        >
+                          <TrashIcon className="w-4 h-4" />
                         </button>
                       </div>
                     </td>

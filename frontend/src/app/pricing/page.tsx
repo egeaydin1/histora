@@ -14,6 +14,7 @@ import {
   StarIcon
 } from '@heroicons/react/24/outline'
 import { useAuth } from '@/contexts/AuthContext'
+import { apiClient } from '@/lib/api'
 
 interface PricingPlan {
   id: string
@@ -299,23 +300,41 @@ export default function PricingPage() {
   const [pricingPlans, setPricingPlans] = useState<PricingPlan[]>([])
   const [creditPackages, setCreditPackages] = useState<CreditPackage[]>([])
   const [loading, setLoading] = useState(true)
+  const [userCredits, setUserCredits] = useState<number>(0)
+  const [error, setError] = useState<string | null>(null)
   const { user } = useAuth()
 
   useEffect(() => {
     const loadPricingData = async () => {
       try {
         setLoading(true)
+        setError(null)
         
-        // Load pricing plans from API
+        // Load user credits if user is logged in
+        if (user) {
+          try {
+            const userStatsResponse = await apiClient.getUserTokenStats()
+            if (userStatsResponse.data && !userStatsResponse.error) {
+              setUserCredits(userStatsResponse.data.credits || 0)
+            } else {
+              setUserCredits(user.credits || 0)
+            }
+          } catch (creditsError) {
+            console.warn('Failed to load user credits, using fallback')
+            setUserCredits(user.credits || 0)
+          }
+        }
+        
+        // Load pricing plans from public pricing API
         const plansResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/pricing/plans`)
         if (plansResponse.ok) {
           const plansData = await plansResponse.json()
           const transformedPlans = plansData.plans.map((plan: any) => ({
-            id: plan.id,
+            id: plan.name, // Use the backend plan name as the ID for API calls
             name: plan.display_name,
             description: plan.description,
             price: plan.price_monthly / 100, // Convert from cents to currency
-            currency: plan.currency === 'TRY' ? 'TL' : plan.currency,
+            currency: 'TL',
             period: 'ay',
             credits: plan.included_credits,
             features: [
@@ -334,12 +353,15 @@ export default function PricingPage() {
               'Temel destek'
             ] : [],
             recommended: plan.is_featured,
-            popular: plan.name === 'basic' // Mark basic plan as popular
+            popular: plan.name === 'premium'
           }))
           setPricingPlans(transformedPlans)
+        } else {
+          console.warn('Failed to load plans from API, using fallback data')
+          setPricingPlans(fallbackPricingPlans)
         }
         
-        // Load credit packages from API
+        // Load credit packages from public pricing API
         const creditsResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/pricing/credits`)
         if (creditsResponse.ok) {
           const creditsData = await creditsResponse.json()
@@ -348,27 +370,34 @@ export default function PricingPage() {
             name: pkg.display_name,
             credits: pkg.credit_amount,
             price: pkg.price / 100, // Convert from cents to currency
-            currency: pkg.currency === 'TRY' ? 'TL' : pkg.currency,
+            currency: 'TL',
             bonus: pkg.bonus_credits,
             popular: pkg.is_popular
           }))
           setCreditPackages(transformedPackages)
+        } else {
+          console.warn('Failed to load credit packages from API, using fallback data')
+          setCreditPackages(fallbackCreditPackages)
         }
         
       } catch (error) {
         console.error('Failed to load pricing data:', error)
+        setError('Failed to load pricing information. Please try again.')
         // Fallback to the original hardcoded data
         setPricingPlans(fallbackPricingPlans)
         setCreditPackages(fallbackCreditPackages)
+        if (user) {
+          setUserCredits(user.credits || 0)
+        }
       } finally {
         setLoading(false)
       }
     }
 
     loadPricingData()
-  }, [])
+  }, [user])
 
-  const handlePlanSelect = (planId: string) => {
+  const handlePlanSelect = async (planId: string) => {
     if (!user && planId !== 'free') {
       // Redirect to login for paid plans
       window.location.href = '/login?redirect=/pricing'
@@ -379,23 +408,81 @@ export default function PricingPage() {
       // Handle free plan
       window.location.href = '/register'
     } else {
-      // Handle paid plan selection
-      console.log('Selected plan:', planId)
-      // TODO: Integrate with payment system
-      alert('Ödeme sistemi yakında aktif olacak!')
+      try {
+        // Find the plan details
+        const selectedPlan = pricingPlans.find(plan => plan.id === planId)
+        if (!selectedPlan) {
+          alert('Plan not found!')
+          return
+        }
+
+        // For now, show plan upgrade info since payment gateway isn't implemented
+        const confirmed = confirm(
+          `Upgrade to ${selectedPlan.name} plan?\n` +
+          `Price: ${selectedPlan.price} TL/month\n` +
+          `Features: ${selectedPlan.features.slice(0, 3).join(', ')}\n\n` +
+          `Note: Payment gateway will be integrated soon.`
+        )
+        
+        if (confirmed) {
+          // Use the API to upgrade plan
+          const response = await apiClient.upgradePlan(planId)
+          
+          if (response.data && !response.error) {
+            alert(`Successfully upgraded to ${selectedPlan.name} plan!`)
+            // Refresh user data or redirect to dashboard
+            window.location.href = '/dashboard'
+          } else {
+            alert('Plan upgrade failed: ' + (response.error || 'Unknown error'))
+          }
+        }
+      } catch (error) {
+        console.error('Plan selection error:', error)
+        alert('Plan upgrade failed. Please try again.')
+      }
     }
   }
 
-  const handleCreditPurchase = (packageId: string) => {
+  const handleCreditPurchase = async (packageId: string) => {
     if (!user) {
       // Redirect to login
       window.location.href = '/login?redirect=/pricing'
       return
     }
     
-    console.log('Purchasing credits:', packageId)
-    // TODO: Integrate with payment system
-    alert('Ödeme sistemi yakında aktif olacak!')
+    try {
+      // Find the package details
+      const selectedPackage = creditPackages.find(pkg => pkg.id === packageId)
+      if (!selectedPackage) {
+        alert('Package not found!')
+        return
+      }
+
+      // For now, show payment info since payment gateway isn't implemented
+      const confirmed = confirm(
+        `Purchase ${selectedPackage.name}?\n` +
+        `Credits: ${selectedPackage.credits + selectedPackage.bonus}\n` +
+        `Price: ${selectedPackage.price} TL\n\n` +
+        `Note: Payment gateway will be integrated soon.`
+      )
+      
+      if (confirmed) {
+        // TODO: Integrate with real payment system
+        // For now, we'll use the API to simulate purchase
+        const response = await apiClient.purchaseCredits(packageId, selectedPackage.credits + selectedPackage.bonus)
+        
+        if (response.data && !response.error) {
+          alert(`Successfully purchased ${selectedPackage.credits + selectedPackage.bonus} credits!`)
+          // Refresh user data or redirect to dashboard
+          window.location.href = '/dashboard'
+        } else {
+          alert('Purchase failed: ' + (response.error || 'Unknown error'))
+        }
+      }
+    } catch (error) {
+      console.error('Credit purchase error:', error)
+      alert('Purchase failed. Please try again.')
+    }
   }
 
   return (
@@ -418,8 +505,15 @@ export default function PricingPage() {
                 <div className="flex items-center justify-center space-x-2 text-sm">
                   <CreditCardIcon className="w-4 h-4 text-blue-600" />
                   <span className="text-gray-600">Mevcut kredileriniz:</span>
-                  <span className="font-bold text-blue-600">{user.credits || 0} kredi</span>
+                  <span className="font-bold text-blue-600">{userCredits} kredi</span>
                 </div>
+              </div>
+            )}
+            
+            {/* Error Display */}
+            {error && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 max-w-md mx-auto mb-8">
+                <p className="text-red-600 text-sm text-center">{error}</p>
               </div>
             )}
           </div>

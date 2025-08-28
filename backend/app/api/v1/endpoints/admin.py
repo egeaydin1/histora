@@ -223,27 +223,41 @@ async def admin_login(
     try:
         auth_service = AuthService()
         
-        # Validate admin credentials
-        user_query = select(User).where(User.email == login_data.email)
-        result = await db.execute(user_query)
-        user = result.scalar_one_or_none()
+        # Authenticate user with email and password
+        user = await auth_service.authenticate_user(
+            email=login_data.email,
+            password=login_data.password,
+            db=db
+        )
         
         if not user:
-            # Demo admin for development
+            # Demo admin fallback for development
             if login_data.email == "admin@histora.com" and login_data.password == "admin123":
-                # Create demo admin user
-                demo_admin = User(
-                    firebase_uid="admin-001",
-                    email="admin@histora.com",
-                    display_name="Admin User",
-                    role="admin",
-                    language_preference="tr",
-                    is_admin=True
-                )
-                db.add(demo_admin)
-                await db.commit()
-                await db.refresh(demo_admin)
-                user = demo_admin
+                # Check if demo admin exists
+                demo_query = select(User).where(User.email == "admin@histora.com")
+                result = await db.execute(demo_query)
+                demo_user = result.scalar_one_or_none()
+                
+                if not demo_user:
+                    # Create demo admin user
+                    demo_admin = User(
+                        firebase_uid="admin-001",
+                        email="admin@histora.com",
+                        password_hash=auth_service.hash_password("admin123"),
+                        display_name="Admin User",
+                        full_name="Demo Admin",
+                        role="admin",
+                        language_preference="tr",
+                        is_admin=True,
+                        is_active=True,
+                        email_verified=True
+                    )
+                    db.add(demo_admin)
+                    await db.commit()
+                    await db.refresh(demo_admin)
+                    user = demo_admin
+                else:
+                    user = demo_user
             else:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
@@ -257,16 +271,23 @@ async def admin_login(
                 detail="Admin access required"
             )
         
+        # Create proper token data
+        token_data = {
+            "sub": str(user.id),  # Use 'sub' for compatibility with get_current_user
+            "user_id": str(user.id),
+            "email": user.email,
+            "role": user.role,
+            "is_admin": user.is_admin
+        }
+        
         # Generate token
-        token = auth_service.create_access_token(
-            data={"sub": user.email, "user_id": str(user.id), "is_admin": True}
-        )
+        token = auth_service.create_access_token(token_data)
         
         return AdminLoginResponse(
             user={
                 "id": str(user.id),
                 "email": user.email,
-                "display_name": user.display_name,
+                "display_name": user.display_name or user.full_name,
                 "role": user.role,
                 "is_admin": user.is_admin
             },
