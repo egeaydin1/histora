@@ -79,7 +79,7 @@ Railway provides a PostgreSQL database add-on:
 
 ## Step 5: Automatic Database Initialization
 
-The application now automatically creates database tables when deployed to Railway through the startup script. Railway's NIXPACKS builder will automatically install dependencies from [requirements.txt](file:///Users/hientranpc/Desktop/Claude/histora/requirements.txt).
+The application now automatically creates database tables when deployed to Railway using a robust startup script. Railway's NIXPACKS builder will automatically install dependencies from [requirements.txt](file:///Users/hientranpc/Desktop/Claude/histora/requirements.txt).
 
 If you need to manually initialize the database, you can still do so:
 

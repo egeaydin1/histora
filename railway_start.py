@@ -6,17 +6,16 @@ This script assumes dependencies are already installed by Railway.
 
 import os
 import sys
-import subprocess
 import asyncio
 from pathlib import Path
-
-# Add backend to Python path
-backend_path = Path(__file__).parent / "backend"
-sys.path.insert(0, str(backend_path))
 
 def main():
     """Main entry point."""
     print("🚀 Starting Histora backend on Railway...")
+    
+    # Add backend to Python path
+    backend_path = Path(__file__).parent / "backend"
+    sys.path.insert(0, str(backend_path))
     
     # Change to backend directory
     os.chdir(backend_path)
@@ -26,6 +25,9 @@ def main():
     if os.environ.get("RAILWAY_PROJECT_ID"):
         print("🔧 Running Railway database initialization...")
         try:
+            # Add the backend directory to Python path for imports
+            sys.path.append(str(backend_path))
+            
             # Import and run initialization
             from app.core.database import db_manager
             from app.models.database import Base
@@ -49,19 +51,26 @@ def main():
     print("🚀 Starting FastAPI application...")
     
     # Get port from environment or default to 8000
-    port = os.environ.get("PORT", 8000)
+    port = int(os.environ.get("PORT", 8000))
     
-    # Start uvicorn as a subprocess
-    uvicorn_cmd = [
-        sys.executable, "-m", "uvicorn",
-        "app.main:app",
-        "--host", "0.0.0.0",
-        "--port", str(port),
-        "--workers", "4"
-    ]
-    
-    print(f"🔧 Starting with command: {' '.join(uvicorn_cmd)}")
-    os.execv(sys.executable, uvicorn_cmd)
+    # Import and run the FastAPI app directly
+    try:
+        from app.main import app
+        import uvicorn
+        
+        print(f"🔧 Starting Uvicorn server on port {port}")
+        uvicorn.run(
+            "app.main:app",
+            host="0.0.0.0",
+            port=port,
+            workers=4,
+            log_level="info"
+        )
+    except Exception as e:
+        print(f"❌ Failed to start FastAPI application: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()
