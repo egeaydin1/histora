@@ -69,7 +69,7 @@ To deploy the Histora backend to Railway:
 
 ### Automatic Database Initialization
 
-The application now automatically creates database tables when deployed to Railway using a simple Python startup script. Railway's NIXPACKS builder will automatically install dependencies from [requirements.txt](file:///Users/hientranpc/Desktop/Claude/histora/requirements.txt).
+The application now automatically creates database tables when deployed to Railway using a robust Python startup script ([railway_start.py](file:///Users/hientranpc/Desktop/Claude/histora/railway_start.py)). Railway's NIXPACKS builder will automatically install dependencies from [requirements.txt](file:///Users/hientranpc/Desktop/Claude/histora/requirements.txt).
 
 If you need to manually initialize the database, you can still do so:
 ```bash

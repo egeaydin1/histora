@@ -1,1 +1,1 @@
-web: python -m __main__
+web: python railway_start.py

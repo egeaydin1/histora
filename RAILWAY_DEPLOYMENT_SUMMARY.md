@@ -10,7 +10,6 @@ This document summarizes the configuration and steps needed to deploy the Histor
 - [requirements.txt](file:///Users/hientranpc/Desktop/Claude/histora/requirements.txt) - Python dependencies
 - [runtime.txt](file:///Users/hientranpc/Desktop/Claude/histora/runtime.txt) - Python version specification
 - [railway_start.py](file:///Users/hientranpc/Desktop/Claude/histora/railway_start.py) - Robust startup script for Railway deployment
-- [__main__.py](file:///Users/hientranpc/Desktop/Claude/histora/backend/venv/lib/python3.11/site-packages/black/__main__.py) - Main entry point for the application
 
 ## Key Features
 
@@ -19,7 +18,7 @@ This document summarizes the configuration and steps needed to deploy the Histor
 3. **PORT Configuration**: Uses Railway's PORT environment variable for dynamic port assignment
 4. **Health Check Endpoint**: `/health` endpoint for monitoring application status
 5. **Railway-Native Dependency Management**: Relies on Railway's NIXPACKS builder to automatically install dependencies
-6. **Robust Startup Process**: Uses Python's module execution approach for better compatibility
+6. **Direct Script Execution**: Uses direct Python script execution for better compatibility
 
 ## Deployment Steps
 
