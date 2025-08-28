@@ -1,6 +1,13 @@
 """
-Admin endpoints for character and system management.
+Admin endpoints for Histora backend.
 """
+from datetime import datetime
+from fastapi import APIRouter, Depends, HTTPException, status, Query
+from pydantic import BaseModel
+from typing import List, Optional, Dict, Any
+from sqlalchemy import select, func
+from sqlalchemy.ext.asyncio import AsyncSession
+
 import uuid
 from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -442,9 +449,12 @@ async def get_admin_stats(
     db: AsyncSession = Depends(get_async_session),
     _: None = Depends(verify_admin_access)
 ) -> Dict[str, Any]:
-    """Get simplified admin statistics."""
+    """Get comprehensive admin statistics for dashboard."""
     try:
-        logger.info("Getting admin statistics")
+        logger.info("Getting comprehensive admin statistics")
+        
+        # Import required models
+        from app.models.database import Character, User, ChatSession, ChatMessage
         
         # Character stats
         characters_query = select(func.count(Character.id)).select_from(Character)
@@ -452,29 +462,67 @@ async def get_admin_stats(
         
         # User stats
         users_query = select(func.count(User.id)).select_from(User)
-        admin_users_query = select(func.count(User.id)).select_from(User).where(User.is_admin == True)
+        active_users_query = select(func.count(User.id)).select_from(User).where(User.is_active == True)
         
-        # Execute all queries
+        # Token/Credit usage stats (mock data for now)
+        total_tokens_consumed = 1240567
+        total_credits_distributed = 45230
+        total_credits_used = 32145
+        
+        # Revenue stats (mock data for now)
+        monthly_revenue = 8950
+        monthly_new_users = 156
+        
+        # Knowledge source stats (mock data for now)
+        total_sources = 3
+        processed_sources = 3
+        total_chunks = 5
+        
+        # Execute queries
         total_characters = (await db.execute(characters_query)).scalar() or 0
         published_characters = (await db.execute(published_query)).scalar() or 0
         total_users = (await db.execute(users_query)).scalar() or 0
-        admin_users = (await db.execute(admin_users_query)).scalar() or 0
+        active_users = (await db.execute(active_users_query)).scalar() or 0
+        
+        # Top characters (mock data for now)
+        top_characters = [
+            {"character_id": "ataturk-001", "name": "Mustafa Kemal Atatürk", "usage_count": 342, "tokens_consumed": 125430},
+            {"character_id": "mevlana-001", "name": "Mevlana Celaleddin Rumi", "usage_count": 198, "tokens_consumed": 89245},
+            {"character_id": "konfucyus-001", "name": "Konfüçyüs", "usage_count": 156, "tokens_consumed": 67892}
+        ]
+        
+        # Recent activity (mock data for now)
+        recent_activity = [
+            {"type": "user_registration", "description": "24 yeni kullanıcı kaydı", "timestamp": datetime.now().isoformat(), "user_count": 24},
+            {"type": "token_usage", "description": "15,420 token kullanımı", "timestamp": datetime.now().isoformat(), "tokens": 15420},
+            {"type": "credit_purchase", "description": "1,250 kredi satışı", "timestamp": datetime.now().isoformat()},
+            {"type": "character_chat", "description": "89 yeni sohbet başlatıldı", "timestamp": datetime.now().isoformat()}
+        ]
+        
+        # RAG health (mock data for now)
+        rag_health = {
+            "status": "healthy",
+            "openai_configured": False,  # Mock value
+            "chroma_connected": True,    # Mock value
+            "collection_count": 5        # Mock value
+        }
         
         stats = {
-            "characters": {
-                "total": total_characters,
-                "published": published_characters
-            },
-            "users": {
-                "total": total_users,
-                "admin": admin_users,
-                "regular": total_users - admin_users
-            },
-            "system": {
-                "status": "healthy",
-                "database": "connected",
-                "ai_service": "active"
-            }
+            "total_characters": total_characters,
+            "published_characters": published_characters,
+            "total_sources": total_sources,
+            "processed_sources": processed_sources,
+            "total_chunks": total_chunks,
+            "total_users": total_users,
+            "active_users": active_users,
+            "total_tokens_consumed": total_tokens_consumed,
+            "total_credits_distributed": total_credits_distributed,
+            "total_credits_used": total_credits_used,
+            "monthly_revenue": monthly_revenue,
+            "monthly_new_users": monthly_new_users,
+            "top_characters": top_characters,
+            "recent_activity": recent_activity,
+            "rag_health": rag_health
         }
         
         logger.info(f"Admin stats retrieved successfully: {total_characters} characters, {total_users} users")
