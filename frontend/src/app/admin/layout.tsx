@@ -73,9 +73,9 @@ export default function AdminLayout({
     )
   }
 
-  // Show login page
+  // Show login page without admin layout
   if (pathname === '/admin/login') {
-    return children
+    return <div className="min-h-screen bg-gray-50">{children}</div>
   }
 
   // Show admin panel
