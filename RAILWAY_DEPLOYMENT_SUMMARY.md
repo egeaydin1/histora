@@ -9,6 +9,7 @@ This document summarizes the configuration and steps needed to deploy the Histor
 - [Procfile](file:///Users/hientranpc/Desktop/Claude/histora/Procfile) - Application start command
 - [requirements.txt](file:///Users/hientranpc/Desktop/Claude/histora/requirements.txt) - Python dependencies
 - [runtime.txt](file:///Users/hientranpc/Desktop/Claude/histora/runtime.txt) - Python version specification
+- [backend/start_railway.sh](file:///Users/hientranpc/Desktop/Claude/histora/backend/start_railway.sh) - Startup script for Railway deployment
 
 ## Key Features
 
@@ -16,6 +17,7 @@ This document summarizes the configuration and steps needed to deploy the Histor
 2. **Environment Variable Support**: Properly configured to use Railway's environment variables
 3. **PORT Configuration**: Uses Railway's PORT environment variable for dynamic port assignment
 4. **Health Check Endpoint**: `/health` endpoint for monitoring application status
+5. **Dependency Management**: Automatic installation of Python dependencies on startup
 
 ## Deployment Steps
 
@@ -46,7 +48,7 @@ This document summarizes the configuration and steps needed to deploy the Histor
 
 The application is configured to:
 - Automatically use the DATABASE_URL environment variable provided by Railway
-- Create all necessary database tables on first deployment
+- Create all necessary database tables on first deployment through the startup script
 - Handle connection pooling and cleanup properly
 
 ## Environment Variables Required
@@ -87,4 +89,4 @@ For deployment issues:
 2. Verify all environment variables are correctly set
 3. Ensure your Railway account has sufficient resources
 
-The application is now ready for deployment to Railway with full database support!
+The application is now ready for deployment to Railway with full database support and automatic dependency management!
