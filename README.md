@@ -1,101 +1,147 @@
-# 📂 Histora - AI Historical Figures Chat Platform
+# Histora - AI Historical Figures Chat Platform
 
-Histora, kullanıcıların tarihi figürler, filozoflar, bilim insanları, sanatçılar ve liderlerle gerçekçi sohbetler yapabileceği interaktif bir yapay zeka platformudur.
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/downloads/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.104.1-green.svg)](https://fastapi.tiangolo.com/)
+[![Next.js](https://img.shields.io/badge/Next.js-14-black.svg)](https://nextjs.org/)
 
-## 🚀 Tech Stack
+Histora is an AI-powered platform that enables users to engage in realistic conversations with historical figures including philosophers, scientists, artists, and leaders.
 
-### Backend
-- **Framework**: Python + FastAPI
-- **AI Model**: Llama 3.1 (OpenRouter)
-- **Vector DB**: Chroma
-- **Database**: PostgreSQL
-- **Auth**: Firebase Auth
+## 🌟 Features
 
-### Frontend
-- **Framework**: Next.js 14
-- **Styling**: Tailwind CSS
-- **Language**: TypeScript
+- **Character Selection**: Choose from a variety of historical figures to chat with
+- **AI-Powered Conversations**: Realistic dialogue using advanced language models
+- **Multilingual Support**: Available in Turkish and English
+- **Document Integration**: Upload and chat with historical documents
+- **Admin Panel**: Manage characters, users, and system settings
+- **Responsive Design**: Works on desktop and mobile devices
 
-### Deployment
-- **Backend**: Railway
-- **Frontend**: Vercel
+## 🚀 Quick Start
+
+### Prerequisites
+
+- Python 3.11+
+- Node.js 18+
+- Docker (for PostgreSQL database)
+- Firebase account (for authentication)
+
+### Development Setup
+
+1. Clone the repository:
+   ```bash
+   git clone <repository-url>
+   cd histora
+   ```
+
+2. Set up environment variables:
+   ```bash
+   cp .env.ex .env
+   # Edit .env with your configuration
+   ```
+
+3. Start the development environment:
+   ```bash
+   ./start.sh
+   ```
+
+4. Access the application:
+   - Frontend: http://localhost:3000
+   - Backend API: http://localhost:8000
+   - API Documentation: http://localhost:8000/docs
+
+## 🚄 Railway Deployment
+
+To deploy the Histora backend to Railway:
+
+1. Create a new project on Railway
+2. Connect your GitHub repository
+3. Railway will automatically detect this as a Python application
+4. Set the following environment variables in Railway:
+   ```
+   DATABASE_URL=postgresql://<railway-db-user>:<railway-db-password>@<railway-db-host>:<railway-db-port>/<railway-db-name>
+   DB_HOST=<railway-db-host>
+   DB_PORT=<railway-db-port>
+   DB_NAME=<railway-db-name>
+   DB_USER=<railway-db-user>
+   DB_PASSWORD=<railway-db-password>
+   ```
+5. Add any other required environment variables from your `.env` file
+
+### Automatic Database Initialization
+
+The application now automatically creates database tables when deployed to Railway. No manual migration steps are required.
+
+If you need to manually initialize the database, you can still do so:
+```bash
+railway run python backend/create_tables.py
+```
+
+## 🌐 Vercel Deployment (Frontend)
+
+To deploy the frontend to Vercel:
+
+1. Create a new project on Vercel
+2. Connect your GitHub repository
+3. Set the root directory to `/frontend`
+4. Set the build command to `npm run build`
+5. Set the output directory to `.next`
+6. Add environment variables:
+   ```
+   NEXT_PUBLIC_API_URL=https://<your-railway-app-url>
+   NEXT_PUBLIC_FIREBASE_API_KEY=<your-firebase-api-key>
+   # ... other Firebase config variables
+   ```
 
 ## 📁 Project Structure
 
 ```
 histora/
-├── backend/                 # FastAPI Backend
-│   ├── app/
-│   │   ├── api/            # API routes
-│   │   ├── core/           # Core configurations
-│   │   ├── models/         # Database models
-│   │   ├── services/       # Business logic
-│   │   └── utils/          # Utilities
-│   ├── database/           # Database migrations & scripts
-│   ├── config/             # Configuration files
-│   └── tests/              # Backend tests
-├── frontend/               # Next.js Frontend
-│   ├── src/
-│   │   ├── app/            # Next.js 14 app router
-│   │   ├── components/     # React components
-│   │   ├── lib/            # Utilities & configurations
-│   │   └── types/          # TypeScript types
-│   └── public/             # Static assets
-├── docs/                   # Documentation
-└── scripts/                # Deployment & utility scripts
+├── backend/              # FastAPI backend
+│   ├── app/              # Application code
+│   │   ├── api/          # API endpoints
+│   │   ├── core/         # Configuration and utilities
+│   │   ├── models/       # Database models
+│   │   └── services/     # Business logic
+│   ├── database/         # Database initialization
+│   └── uploads/          # Uploaded files
+├── frontend/             # Next.js frontend
+│   ├── public/           # Static assets
+│   └── src/              # Source code
+│       ├── app/          # Pages and layouts
+│       ├── components/   # React components
+│       ├── contexts/     # React contexts
+│       └── lib/          # Utility functions
+├── docs/                 # Documentation
+└── scripts/              # Utility scripts
 ```
 
-## 🎯 MVP Features
+## 🛠️ Development Scripts
 
-### For Users
-- ✅ Character selection and chat
-- ✅ Historical personality emulation
-- ✅ Turkish & English support
-- ✅ Firebase authentication
+- `./start.sh` - Start development environment
+- `./stop.sh` - Stop development environment
+- `./restart.sh` - Restart development environment
 
-### For Admin
-- ✅ Character management panel
-- ✅ Document upload & embedding
-- ✅ Category management
-- ✅ Model publishing system
+## 📚 Documentation
 
-## 🏁 Quick Start
+- [Environment Setup Roadmap](ENVIRONMENT_SETUP_ROADMAP.md)
+- [Firebase Setup Guide](FIREBASE_SETUP.md)
+- [RAG Admin Roadmap](RAG_ADMIN_ROADMAP.md)
+- [Railway Deployment Guide](RAILWAY_DEPLOYMENT_GUIDE.md)
+- [Railway Deployment Summary](RAILWAY_DEPLOYMENT_SUMMARY.md)
 
-### Backend Setup
-```bash
-cd backend
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-pip install -r requirements.txt
-uvicorn app.main:app --reload
-```
+## 🤝 Contributing
 
-### Frontend Setup
-```bash
-cd frontend
-npm install
-npm run dev
-```
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a pull request
 
-## 🔧 Environment Variables
+## 📄 License
 
-Check `.env.example` files in both backend and frontend directories.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 📚 Characters (MVP)
+## 🙏 Acknowledgments
 
-### 🇹🇷 Turkish Characters
-- Atatürk (Leader)
-- Mevlana (Philosopher) 
-- Mimar Sinan (Architect)
-- Nazım Hikmet (Poet)
-- İbn-i Sina (Scientist)
-
-### 🇨🇳 Chinese Characters  
-- Konfüçyüs (Philosopher)
-- Laozi (Philosopher)
-- Sun Tzu (Strategist)
-- Zhang Heng (Scientist)
-- Mao Zedong (Leader)
-
----
-*"Histora, insanlığın en büyük zihinsel mirasını canlı hale getiriyor."*
+- Thanks to all contributors who have helped shape Histora
+- Inspired by the desire to make historical knowledge more accessible and engaging

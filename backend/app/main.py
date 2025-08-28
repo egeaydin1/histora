@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 import uvicorn
 import time
+import os
 
 from app.core.config import get_settings
 from app.api.v1.router import api_router
@@ -36,6 +37,23 @@ async def lifespan(app: FastAPI):
         print(f"❌ Database error: {e}")
         import traceback
         traceback.print_exc()
+    
+    # Run Railway initialization if in Railway environment
+    if os.environ.get("RAILWAY_PROJECT_ID"):
+        try:
+            print("🔧 Running Railway initialization...")
+            from app.core.database import db_manager
+            from app.models.database import Base
+            
+            # Create tables automatically on Railway
+            engine = db_manager.get_async_engine()
+            async with engine.begin() as conn:
+                await conn.run_sync(Base.metadata.create_all)
+            print("✅ Railway database initialization completed")
+        except Exception as e:
+            print(f"❌ Railway initialization error: {e}")
+            import traceback
+            traceback.print_exc()
     
     yield
     
@@ -132,10 +150,13 @@ app = create_app()
 
 
 if __name__ == "__main__":
+    # Use PORT environment variable for Railway, fallback to settings
+    port = int(os.environ.get("PORT", settings.backend_port))
+    
     uvicorn.run(
         "app.main:app",
         host="0.0.0.0",
-        port=settings.backend_port,
+        port=port,
         reload=settings.dev_auto_reload and settings.is_development,
         log_level=settings.log_level.lower()
     )

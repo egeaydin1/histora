@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     # API SETTINGS
     # =============================================================================
     backend_url: str = Field(default="http://localhost:8000", env="BACKEND_URL")
-    backend_port: int = Field(default=8000, env="BACKEND_PORT")
+    backend_port: int = Field(default=8000, env="PORT")  # Railway uses PORT env var
     frontend_url: str = Field(default="http://localhost:3000", env="FRONTEND_URL")
     
     # CORS
