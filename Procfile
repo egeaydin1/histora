@@ -1,1 +1,1 @@
-web: python backend/start_railway.sh
+web: python railway_start.py
