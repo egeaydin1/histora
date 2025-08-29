@@ -124,6 +124,7 @@ Thumbs.db
 
 # Railway (deployment)
 .railway/
+.railwayapp.json
 
 # Firebase
 firebase-debug.log
