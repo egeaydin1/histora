@@ -1,1 +1,5 @@
-# Histora Backend Application
+"""Histora Backend Application"""
+
+from .main import create_app, app
+
+__all__ = ["create_app", "app"]

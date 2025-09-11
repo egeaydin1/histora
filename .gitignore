@@ -92,8 +92,7 @@ files/
 media/
 
 # Test files
-test_*.py
-*_test.py
+
 coverage/
 .coverage
 .pytest_cache/
