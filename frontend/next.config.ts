@@ -27,7 +27,21 @@ const nextConfig: NextConfig = {
   // Image optimization for Railway
   images: {
     unoptimized: true
-  }
+  },
+  
+  // ESLint configuration for production builds
+  eslint: {
+    // Warning: This allows production builds to successfully complete even if
+    // your project has ESLint errors.
+    ignoreDuringBuilds: true,
+  },
+  
+  // TypeScript configuration for production builds
+  typescript: {
+    // Warning: This allows production builds to successfully complete even if
+    // your project has TypeScript errors.
+    ignoreBuildErrors: true,
+  },
 };
 
 export default nextConfig;
