@@ -1,0 +1,12 @@
+[phases.setup]
+nixPkgs = ["nodejs_20"]
+
+[variables]
+NODE_VERSION = "20"
+NODE_ENV = "production"
+
+[phases.build]
+cmds = ["npm ci --no-audit --no-fund", "npm run build"]
+
+[phases.start]
+cmd = "npx next start -p $PORT"
