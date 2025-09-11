@@ -1,20 +1,11 @@
 {
-  "version": 1,
-  "services": {
-    "backend": {
-      "source": "backend",
-      "builder": "NIXPACKS",
-      "buildCommand": "pip install -r requirements.txt",
-      "startCommand": "python3 main.py"
-    },
-    "frontend": {
-      "source": "frontend",
-      "builder": "NIXPACKS",
-      "variables": {
-        "NODE_VERSION": "20",
-        "NODE_ENV": "production",
-        "NIXPACKS_NODE_VERSION": "20"
-      }
-    }
+  "$schema": "https://railway.app/railway.schema.json",
+  "build": {
+    "builder": "NIXPACKS"
+  },
+  "deploy": {
+    "numReplicas": 1,
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 10
   }
 }
