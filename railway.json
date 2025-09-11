@@ -13,7 +13,8 @@
       "buildCommand": "npm ci --no-audit --no-fund && npm run build",
       "startCommand": "npx next start -p $PORT",
       "variables": {
-        "NODE_VERSION": "20"
+        "NODE_VERSION": "20",
+        "NODE_ENV": "production"
       }
     }
   }
