@@ -6,7 +6,13 @@ NODE_VERSION = "20"
 NODE_ENV = "production"
 
 [phases.build]
-cmds = ["npm ci --no-audit --no-fund", "npm run build"]
+cmds = [
+  "rm -rf node_modules/.cache || true",
+  "rm -rf .next/cache || true", 
+  "npm cache clean --force || true",
+  "npm ci --no-audit --no-fund --prefer-offline --no-optional",
+  "npm run build"
+]
 
 [phases.start]
 cmd = "npx next start -p $PORT"
