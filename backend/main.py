@@ -51,18 +51,18 @@ def create_simple_app():
     
     return app
 
+# Create app instance for ASGI server
+try:
+    from app.main import create_app
+    app = create_app()
+    print("Using full application")
+except Exception as e:
+    print(f"Full app import failed: {e}")
+    print("Using simplified app")
+    app = create_simple_app()
+
 if __name__ == "__main__":
     import uvicorn
-    
-    # Try to import full app, fallback to simple app
-    try:
-        from app.main import create_app
-        app = create_app()
-        print("Using full application")
-    except Exception as e:
-        print(f"Full app import failed: {e}")
-        print("Using simplified app")
-        app = create_simple_app()
     
     port = int(os.environ.get("PORT", 8000))
     host = "0.0.0.0"

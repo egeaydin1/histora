@@ -1,0 +1,11 @@
+[providers]
+nodejs = "20"
+
+[build]
+cmds = ["npm ci --no-audit --no-fund", "npm run build"]
+
+[start]
+cmd = "npx next start -p $PORT"
+
+[variables]
+NODE_ENV = "production"

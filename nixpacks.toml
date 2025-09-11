@@ -1,5 +1,6 @@
 [providers]
 python = "3.11"
+nodejs = "20"
 
 [variables]
 PYTHONPATH = "/app"

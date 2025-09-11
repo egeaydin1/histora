@@ -1,0 +1,11 @@
+[providers]
+python = "3.11"
+
+[variables]
+PYTHONPATH = "/app"
+
+[build]
+cmds = ["pip install -r requirements.txt"]
+
+[start]
+cmd = "python3 main.py"
