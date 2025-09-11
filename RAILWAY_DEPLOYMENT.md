@@ -1,46 +1,99 @@
-# Histora Railway Deployment
-## Environment Variables Template
+## Histora Railway Dağıtım Kılavuzu
 
-# After creating Railway services, set these variables in Railway dashboard:
+Bu kılavuz, Histora'nın backend (FastAPI) ve frontend (Next.js) servislerini Railway'e adım adım nasıl dağıtacağınızı açıklar.
 
-## Backend Service Environment Variables:
+## Önkoşullar
+- Railway hesabı ve bir proje
+- Node.js ve npm (Frontend build için)
+- Railway CLI: `npm i -g @railway/cli`
+- PostgreSQL eklentisi (Railway üzerinden ekleyeceğiz)
+
+## Hızlı Başlangıç (CLI)
+```bash
+# CLI kurulumu ve giriş
+npm i -g @railway/cli
+railway login
+
+# Projeyi bağla ve deploy tetikle
+cd /Users/hientranpc/Desktop/Claude/histora
+railway init
+railway up
 ```
-DATABASE_URL=${DATABASE_URL}  # Auto-provided by Railway PostgreSQL
-APP_NAME=Histora
-APP_VERSION=1.0.0
+
+Not: PostgreSQL servisini Railway dashboard üzerinden ekleyin ve backend servisine bağlayın. `DATABASE_URL` otomatik enjekte edilir.
+
+## Railway Servisleri ve Komutlar
+
+Backend servisi (kaynak: `backend/`)
+- Build: `pip install -r requirements.txt`
+- Start: `python3 main.py`
+
+Frontend servisi (kaynak: `frontend/`)
+- Build: `npm ci --no-audit --no-fund && npm run build`
+- Start: `npx next start -p $PORT`
+
+Bu komutlar `railway.json` içinde tanımlıdır ve otomatik kullanılır.
+
+## Ortam Değişkenleri
+
+Backend (zorunlu)
+```
 ENVIRONMENT=production
 DEBUG=false
 LOG_LEVEL=info
-PORT=${PORT}  # Auto-provided by Railway
-BACKEND_URL=${RAILWAY_STATIC_URL}
-FRONTEND_URL=https://your-frontend.railway.app
-ALLOWED_ORIGINS=https://your-frontend.railway.app
-FIREBASE_CREDENTIALS_JSON={"type":"service_account",...}
-FIREBASE_PROJECT_ID=your-firebase-project-id
-OPENROUTER_API_KEY=your-openrouter-api-key
-OPENAI_API_KEY=your-openai-api-key
-SECRET_KEY=your-super-secret-key-here
-JWT_SECRET_KEY=your-jwt-secret-key
+# PORT (Railway verir)
+DATABASE_URL=<Railway Postgres tarafından otomatik sağlanır>
+BACKEND_URL=https://<backend-domain>
+FRONTEND_URL=https://<frontend-domain>
+ALLOWED_ORIGINS=https://<frontend-domain>
+JWT_SECRET_KEY=<güçlü bir anahtar>
 ```
 
-## Frontend Service Environment Variables:
+Backend (opsiyonel/entegrasyon)
 ```
-NEXT_PUBLIC_API_URL=https://your-backend.railway.app
-NEXT_PUBLIC_FIREBASE_API_KEY=your-firebase-api-key
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=your-firebase-project-id
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your-project.appspot.com
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=123456789
-NEXT_PUBLIC_FIREBASE_APP_ID=your-firebase-app-id
+OPENROUTER_API_KEY=
+OPENAI_API_KEY=
+FIREBASE_PROJECT_ID=
+FIREBASE_PRIVATE_KEY_ID=
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----"
+FIREBASE_CLIENT_EMAIL=
+FIREBASE_CLIENT_ID=
+RUN_MIGRATIONS_ON_START=true
+```
+
+Frontend
+```
 NODE_ENV=production
-PORT=3000
+NEXT_PUBLIC_API_URL=https://<backend-domain>
+NEXT_PUBLIC_FIREBASE_API_KEY=
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
+NEXT_PUBLIC_FIREBASE_APP_ID=
 ```
 
-## Railway Deployment Steps:
-1. Run `chmod +x deploy.sh`
-2. Run `./deploy.sh`
-3. Create PostgreSQL service in Railway dashboard
-4. Create backend service (root directory: backend)
-5. Create frontend service (root directory: frontend)
-6. Set environment variables for each service
-7. Deploy and test
+Notlar:
+- Production'da CORS kısıtlaması için `ALLOWED_ORIGINS` içine frontend domainini ekleyin.
+- `frontend/next.config.ts` `NEXT_PUBLIC_API_URL`'ı kullanarak backend'e proxy yapar.
+
+## Doğrulama (Health Check)
+- Backend dağıtıldıktan sonra:
+  - `GET https://<backend-domain>/health`
+  - `GET https://<backend-domain>/api/v1/health`
+- Frontend dağıtıldıktan sonra:
+  - Tarayıcı: `https://<frontend-domain>`
+  - Ağ isteklerinde backend çağrılarının `NEXT_PUBLIC_API_URL` ile doğru domaine gittiğini kontrol edin.
+
+## Sık Karşılaşılan Sorunlar
+- Veritabanı bağlantı hatası: Postgres servisini projeye ekleyip backend servisine bağlayın; `DATABASE_URL`'ın geldiğini doğrulayın.
+- 401/403 CORS: `ALLOWED_ORIGINS` değerine frontend domainini ekleyin.
+- Frontend 404/başlatılamıyor: `npx next start -p $PORT` kullanıldığına emin olun; `npm run build` başarılı mı kontrol edin.
+- 500/Env eksik: Backend ve frontend env değişkenlerinin eksiksiz olduğundan emin olun.
+- Port çakışması: Railway `PORT` değişkenini sağlar; hard-coded port kullanmayın.
+
+## Ek Notlar
+- `railway.json` servis komutları güncellendi:
+  - Backend start: `python3 main.py`
+  - Frontend start: `npx next start -p $PORT`
+- Dockerfile sadece backend içindir; frontend ayrı servis olarak deploy edilmelidir.

@@ -6,8 +6,7 @@ Histora, kullanıcıların tarihi figürler, filozoflar, bilim insanları, sanat
 
 ### Backend
 - **Framework**: Python + FastAPI
-- **AI Model**: Llama 3.1 (OpenRouter)
-- **Vector DB**: Chroma
+- **AI Model**:  (OpenRouter)
 - **Database**: PostgreSQL
 - **Auth**: Firebase Auth
 
@@ -17,8 +16,7 @@ Histora, kullanıcıların tarihi figürler, filozoflar, bilim insanları, sanat
 - **Language**: TypeScript
 
 ### Deployment
-- **Backend**: Railway
-- **Frontend**: Vercel
+Railway
 
 ## 📁 Project Structure
 

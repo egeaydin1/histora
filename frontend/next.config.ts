@@ -1,10 +1,10 @@
 import type { NextConfig } from "next";
+import { join } from "path";
 
 const nextConfig: NextConfig = {
   output: 'standalone',
-  experimental: {
-    serverComponentsExternalPackages: ['@headlessui/react']
-  },
+  // Specify the root directory for output file tracing to silence multiple lockfiles warning
+  outputFileTracingRoot: join(__dirname, '../'),
   // Railway deployment optimizations
   compress: true,
   poweredByHeader: false,
