@@ -23,9 +23,9 @@ if not os.environ.get("DATABASE_URL"):
 
 def get_base_url():
     """Get base URL for testing."""
-    # Try Railway internal URL first, then localhost
-    if os.environ.get("RAILWAY_ENVIRONMENT"):
-        return "http://localhost:8080"  # Railway internal port
+    # Check if we're in Railway environment
+    if os.environ.get("DATABASE_URL") and "railway" in os.environ.get("DATABASE_URL", ""):
+        return "http://127.0.0.1:8080"  # Railway internal port
     return "http://localhost:8000"
 
 def get_api_base_url():
