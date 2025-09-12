@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
 Railway deployment entry point for Histora backend.
+Direct import from app.main for full API functionality.
 """
 import os
 import sys
@@ -13,38 +14,21 @@ sys.path.insert(0, str(current_dir))
 # Set PYTHONPATH environment variable
 os.environ.setdefault('PYTHONPATH', str(current_dir))
 
-# Import and create the app
+# Direct import from app.main - this has full API v1
 try:
-    # Try multiple import paths
-    try:
-        from app.main import create_app
-        print("✅ Imported from app.main")
-    except ImportError:
-        import sys
-        sys.path.append('/app')
-        from app.main import create_app
-        print("✅ Imported from app.main with adjusted path")
-    
-    app = create_app()
-    print("✅ Full application with API v1 loaded successfully")
-    
+    from app.main import app
+    print("✅ Direct import from app.main:app - Full API v1 loaded!")
 except Exception as e:
-    print(f"❌ Failed to load full app: {e}")
-    print("🔄 Creating fallback app...")
-    
-    # Create a simple fallback app
+    print(f"❌ Failed to import app.main:app - {e}")
+    # Create fallback
     from fastapi import FastAPI
-    app = FastAPI(title="Histora Backend", version="1.0.0")
+    app = FastAPI(title="Histora Backend Fallback", version="1.0.0")
     
     @app.get("/health")
     async def health_check():
-        return {"status": "ok", "message": "Histora Backend is running (fallback mode)"}
+        return {"status": "ok", "message": "Fallback mode - check logs"}
     
-    @app.get("/")
-    async def root():
-        return {"message": "Histora Backend API", "status": "active", "mode": "fallback"}
-    
-    print("✅ Fallback application created")
+    print("⚠️ Using fallback app")
 
 # For Railway deployment
 if __name__ == "__main__":
@@ -58,7 +42,7 @@ if __name__ == "__main__":
     
     # Run the server
     uvicorn.run(
-        app,  # Direct app object, not string
+        app,  # Direct app object with full API
         host=host,
         port=port,
         log_level="info",
