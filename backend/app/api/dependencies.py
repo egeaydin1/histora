@@ -76,29 +76,60 @@ async def get_current_user(
         )
     
     try:
-        settings = get_settings()
-        payload = jwt.decode(
-            credentials.credentials,
-            settings.jwt_secret_key,
-            algorithms=[settings.jwt_algorithm]
-        )
+        # First try Firebase token verification
+        from app.services.firebase_service import firebase_service
+        firebase_user = await firebase_service.verify_firebase_token(credentials.credentials)
         
-        # Extract user information from token payload
-        user_id = payload.get("user_id") or payload.get("sub")
-        if user_id is None:
-            raise AuthenticationError("Invalid token payload")
+        if firebase_user:
+            # Firebase token verified - get user from database
+            user_email = firebase_user.get("email")
+            if not user_email:
+                raise AuthenticationError("Firebase token missing email")
+            
+            # Find user by email in database
+            result = await db.execute(
+                select(User).where(User.email == user_email)
+            )
+            user = result.scalar_one_or_none()
+            
+            if not user:
+                raise AuthenticationError("User not found in database")
+                
+            user_uuid = user.id
+        else:
+            # Fallback to JWT token verification
+            settings = get_settings()
+            payload = jwt.decode(
+                credentials.credentials,
+                settings.jwt_secret_key,
+                algorithms=[settings.jwt_algorithm]
+            )
+            
+            # Extract user information from token payload
+            user_id = payload.get("user_id") or payload.get("sub")
+            if user_id is None:
+                raise AuthenticationError("Invalid token payload")
+            
+            # Convert string UUID to UUID object
+            try:
+                user_uuid = uuid.UUID(user_id)
+            except ValueError:
+                raise AuthenticationError("Invalid user ID format")
         
-        # Convert string UUID to UUID object
-        try:
-            user_uuid = uuid.UUID(user_id)
-        except ValueError:
-            raise AuthenticationError("Invalid user ID format")
-        
+    except AuthenticationError:
+        raise
     except jwt.PyJWTError as e:
         logger.error("JWT decode error", error=str(e))
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid authentication token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    except Exception as e:
+        logger.error("Authentication error", error=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication failed",
             headers={"WWW-Authenticate": "Bearer"},
         )
     except AuthenticationError as e:
