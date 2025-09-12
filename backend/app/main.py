@@ -64,25 +64,14 @@ def create_app() -> FastAPI:
         lifespan=lifespan
     )
     
-    # CORS Middleware
-    if settings.is_development:
-        # Development: Allow all origins
-        app.add_middleware(
-            CORSMiddleware,
-            allow_origins=["*"],
-            allow_credentials=True,
-            allow_methods=["*"],
-            allow_headers=["*"],
-        )
-    else:
-        # Production: Restrict to configured origins
-        app.add_middleware(
-            CORSMiddleware,
-            allow_origins=settings.cors_origins,
-            allow_credentials=True,
-            allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-            allow_headers=["*"],
-        )
+    # CORS Middleware - Allow all origins for Railway deployment
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],  # Allow all origins for now
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
     
     # Trusted Host Middleware (production security)
     if settings.is_production:
