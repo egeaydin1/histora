@@ -28,10 +28,11 @@ async def test_railway_connection():
     try:
         # Test database connection
         from app.core.database import engine
+        from sqlalchemy import text
         
         print("🔌 Testing database connection...")
         async with engine.begin() as conn:
-            result = await conn.execute("SELECT 1 as test")
+            result = await conn.execute(text("SELECT 1 as test"))
             row = result.fetchone()
             if row and row[0] == 1:
                 print("✅ Database connection successful!")
@@ -42,12 +43,12 @@ async def test_railway_connection():
         # Test table existence
         print("📋 Checking if tables exist...")
         async with engine.begin() as conn:
-            result = await conn.execute("""
+            result = await conn.execute(text("""
                 SELECT table_name 
                 FROM information_schema.tables 
                 WHERE table_schema = 'public'
                 ORDER BY table_name
-            """)
+            """))
             tables = [row[0] for row in result.fetchall()]
             
             if tables:
