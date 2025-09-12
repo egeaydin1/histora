@@ -1,4 +1,5 @@
-# 🎯 HISTORA - RAG + ADMIN PANEL ROADMAP
+   pip install -r requirements.txt
+   # 🎯 HISTORA - RAG + ADMIN PANEL ROADMAP
 
 ## 📋 CURRENT STATUS
 ✅ **Completed:**

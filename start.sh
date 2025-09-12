@@ -1,4 +1,4 @@
-#!/bin/bash
+y#!/bin/bash
 
 # Histora Development Environment Startup Script
 # This script starts all required services for local development
