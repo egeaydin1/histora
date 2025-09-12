@@ -20,15 +20,34 @@ try:
     print("✅ Direct import from app.main:app - Full API v1 loaded!")
 except Exception as e:
     print(f"❌ Failed to import app.main:app - {e}")
-    # Create fallback
+    # Create fallback with CORS
     from fastapi import FastAPI
+    from fastapi.middleware.cors import CORSMiddleware
+    
     app = FastAPI(title="Histora Backend Fallback", version="1.0.0")
+    
+    # Add CORS middleware
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],  # Allow all origins for now
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
     
     @app.get("/health")
     async def health_check():
         return {"status": "ok", "message": "Fallback mode - check logs"}
     
-    print("⚠️ Using fallback app")
+    @app.get("/api/v1/auth/me")
+    async def fallback_auth():
+        return {"error": "Backend in fallback mode", "authenticated": False}
+    
+    @app.post("/api/v1/admin/login")
+    async def fallback_admin_login():
+        return {"error": "Backend in fallback mode", "success": False}
+    
+    print("⚠️ Using fallback app with CORS enabled")
 
 # For Railway deployment
 if __name__ == "__main__":
