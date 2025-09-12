@@ -76,14 +76,19 @@ async def get_current_user(
         )
     
     try:
-        # First try Firebase token verification
+        # Try Firebase token verification first
         from app.services.firebase_service import firebase_service
+        
+        logger.info("Attempting Firebase token verification")
         firebase_user = await firebase_service.verify_firebase_token(credentials.credentials)
         
         if firebase_user:
+            logger.info(f"Firebase token verified for user: {firebase_user.get('email')}")
+            
             # Firebase token verified - get user from database
             user_email = firebase_user.get("email")
             if not user_email:
+                logger.error("Firebase token missing email")
                 raise AuthenticationError("Firebase token missing email")
             
             # Find user by email in database
@@ -93,10 +98,15 @@ async def get_current_user(
             user = result.scalar_one_or_none()
             
             if not user:
+                logger.warning(f"User not found in database: {user_email}")
                 raise AuthenticationError("User not found in database")
                 
             user_uuid = user.id
+            logger.info(f"User authenticated via Firebase: {user_email}")
+            
         else:
+            logger.warning("Firebase token verification failed, trying JWT fallback")
+            
             # Fallback to JWT token verification
             settings = get_settings()
             payload = jwt.decode(
@@ -113,11 +123,17 @@ async def get_current_user(
             # Convert string UUID to UUID object
             try:
                 user_uuid = uuid.UUID(user_id)
+                logger.info(f"User authenticated via JWT: {user_id}")
             except ValueError:
                 raise AuthenticationError("Invalid user ID format")
         
-    except AuthenticationError:
-        raise
+    except AuthenticationError as e:
+        logger.error(f"Authentication error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=str(e),
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     except jwt.PyJWTError as e:
         logger.error("JWT decode error", error=str(e))
         raise HTTPException(
@@ -126,17 +142,10 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
     except Exception as e:
-        logger.error("Authentication error", error=str(e))
+        logger.error("Unexpected authentication error", error=str(e))
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Authentication failed",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    except AuthenticationError as e:
-        logger.error("Authentication error", error=str(e))
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=str(e),
             headers={"WWW-Authenticate": "Bearer"},
         )
     
