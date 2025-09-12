@@ -1,31 +1,22 @@
 #!/usr/bin/env python3
 """
-Test authentication system.
+Test authentication system - Railway compatible.
 """
-import os
 import asyncio
-import sys
 import json
-from pathlib import Path
-
-# Add the backend directory to the Python path
-backend_dir = Path(__file__).parent
-sys.path.insert(0, str(backend_dir))
-
-# Set environment variables for testing
-os.environ.update({
-    "DATABASE_URL": "postgresql://histora:histora123@localhost:5433/histora",
-    "ENVIRONMENT": "development",
-    "DEBUG": "true"
-})
+from test_config import *
 
 async def test_auth_endpoints():
     """Test authentication endpoints via HTTP."""
-    print("🔐 Testing Authentication System...")
+    print_test_header("Authentication System Test")
     
-    import aiohttp
+    try:
+        import aiohttp
+    except ImportError:
+        print("❌ aiohttp not available - install with: pip install aiohttp")
+        return
     
-    base_url = "http://localhost:8000/api/v1/auth"
+    base_url = f"{get_api_base_url()}/auth"
     
     try:
         async with aiohttp.ClientSession() as session:
@@ -40,13 +31,9 @@ async def test_auth_endpoints():
             
             # Test registration (with API key)
             print("\n👤 Testing user registration...")
-            register_data = {
-                "email": "test@histora.com",
-                "password": "test123!",
-                "full_name": "Test User"
-            }
+            register_data = TEST_USER_DATA.copy()
             
-            headers = {"X-Admin-API-Key": "histora-admin-dev-2025"}
+            headers = {"X-Admin-API-Key": TEST_ADMIN_API_KEY}
             
             async with session.post(
                 f"{base_url}/register", 

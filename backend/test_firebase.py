@@ -1,23 +1,10 @@
 #!/usr/bin/env python3
 """
-Test Firebase authentication integration.
+Test Firebase authentication integration - Railway compatible.
 """
-import os
 import asyncio
-import sys
 import json
-from pathlib import Path
-
-# Add the backend directory to the Python path
-backend_dir = Path(__file__).parent
-sys.path.insert(0, str(backend_dir))
-
-# Set environment variables for testing
-os.environ.update({
-    "DATABASE_URL": "postgresql://histora:histora123@localhost:5433/histora",
-    "ENVIRONMENT": "development",
-    "DEBUG": "true"
-})
+from test_config import *
 
 async def test_firebase_service():
     """Test Firebase service functionality."""
