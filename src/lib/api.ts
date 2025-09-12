@@ -29,12 +29,34 @@ class ApiClient {
 
     // Request interceptor
     this.client.interceptors.request.use(
-      (config) => {
-        // Add auth token if available
-        const token = localStorage.getItem('auth_token')
-        if (token) {
-          config.headers.Authorization = `Bearer ${token}`
+      async (config) => {
+        try {
+          // Try to get Firebase ID token first
+          const { getAuth } = await import('firebase/auth')
+          const auth = getAuth()
+          const currentUser = auth.currentUser
+          
+          if (currentUser) {
+            const firebaseToken = await currentUser.getIdToken()
+            config.headers.Authorization = `Bearer ${firebaseToken}`
+            console.log('Using Firebase ID token for API request')
+          } else {
+            // Fallback to stored JWT token
+            const token = localStorage.getItem('auth_token')
+            if (token) {
+              config.headers.Authorization = `Bearer ${token}`
+              console.log('Using stored JWT token for API request')
+            }
+          }
+        } catch (error) {
+          console.warn('Error getting Firebase token, using stored token:', error)
+          // Fallback to stored JWT token
+          const token = localStorage.getItem('auth_token')
+          if (token) {
+            config.headers.Authorization = `Bearer ${token}`
+          }
         }
+        
         console.log(`API Request: ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`)
         return config
       },
