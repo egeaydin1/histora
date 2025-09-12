@@ -10,6 +10,17 @@ import uuid
 # Add the backend directory to Python path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
+# Set default environment variables (Railway will override these)
+if not os.environ.get("DATABASE_URL"):
+    os.environ.update({
+        "DATABASE_URL": "postgresql://histora:histora123@localhost:5433/histora",
+        "ENVIRONMENT": "development",
+        "DEBUG": "true"
+    })
+
+# Print current database URL for debugging
+print(f"🔗 Using DATABASE_URL: {os.environ.get('DATABASE_URL', 'Not set')}")
+
 from app.core.database import DatabaseManager
 from app.services.auth_service import auth_service
 from sqlalchemy import text

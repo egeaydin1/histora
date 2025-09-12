@@ -13,16 +13,20 @@ import bcrypt
 backend_dir = Path(__file__).parent
 sys.path.insert(0, str(backend_dir))
 
-# Set environment variables for testing
-os.environ.update({
-    "DATABASE_URL": "postgresql://histora:histora123@localhost:5433/histora",
-    "CHROMA_HOST": "localhost",
-    "CHROMA_PORT": "8001",
-    "CHROMA_COLLECTION_NAME": "character_embeddings",
-    "OPENAI_API_KEY": "your_openai_api_key_here",
-    "ENVIRONMENT": "development",
-    "DEBUG": "true"
-})
+# Set default environment variables (Railway will override these)
+if not os.environ.get("DATABASE_URL"):
+    os.environ.update({
+        "DATABASE_URL": "postgresql://histora:histora123@localhost:5433/histora",
+        "CHROMA_HOST": "localhost",
+        "CHROMA_PORT": "8001",
+        "CHROMA_COLLECTION_NAME": "character_embeddings",
+        "OPENAI_API_KEY": "your_openai_api_key_here",
+        "ENVIRONMENT": "development",
+        "DEBUG": "true"
+    })
+
+# Print current database URL for debugging
+print(f"🔗 Using DATABASE_URL: {os.environ.get('DATABASE_URL', 'Not set')}")
 
 from app.core.database import get_async_session
 from app.models.database import User
