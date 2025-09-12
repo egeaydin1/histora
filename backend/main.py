@@ -15,22 +15,34 @@ os.environ.setdefault('PYTHONPATH', str(current_dir))
 
 # Import and create the app
 try:
-    from app.main import create_app
+    # Try multiple import paths
+    try:
+        from app.main import create_app
+        print("✅ Imported from app.main")
+    except ImportError:
+        import sys
+        sys.path.append('/app')
+        from app.main import create_app
+        print("✅ Imported from app.main with adjusted path")
+    
     app = create_app()
-    print("✅ Full application loaded successfully")
-except ImportError as e:
-    print(f"❌ Failed to import app.main: {e}")
+    print("✅ Full application with API v1 loaded successfully")
+    
+except Exception as e:
+    print(f"❌ Failed to load full app: {e}")
+    print("🔄 Creating fallback app...")
+    
     # Create a simple fallback app
     from fastapi import FastAPI
     app = FastAPI(title="Histora Backend", version="1.0.0")
     
     @app.get("/health")
     async def health_check():
-        return {"status": "ok", "message": "Histora Backend is running"}
+        return {"status": "ok", "message": "Histora Backend is running (fallback mode)"}
     
     @app.get("/")
     async def root():
-        return {"message": "Histora Backend API", "status": "active"}
+        return {"message": "Histora Backend API", "status": "active", "mode": "fallback"}
     
     print("✅ Fallback application created")
 
