@@ -1,7 +1,8 @@
 'use client'
 
 import React, { createContext, useContext, useEffect, useState } from 'react'
-import { User as FirebaseUser } from 'firebase/auth'
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type FirebaseUser = any
 import { firebaseAuth } from '@/lib/firebase'
 import { apiClient } from '@/lib/api'
 import type { User } from '@/types'
@@ -59,7 +60,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!isSubscribed || processingAuth) return // Prevent updates if component unmounted or already processing
       
       processingAuth = true
-      console.log('Auth state changed:', firebaseUser?.email || 'No user')
+      console.log('Auth state changed:', firebaseUser ? 'user signed in' : 'no user')
       setFirebaseUser(firebaseUser)
       
       if (firebaseUser) {
@@ -80,8 +81,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const userResponse = await apiClient.getCurrentUser()
           
           if (userResponse.data && isSubscribed) {
-            console.log('User found in backend:', userResponse.data.email)
-            setUser(userResponse.data)
+            console.log('User found in backend')
+            setUser(userResponse.data as unknown as User)
           } else if (userResponse.error === 'USER_NOT_FOUND' && isSubscribed) {
             console.log('User not found in backend, attempting registration')
             // Register new user only if we haven't already
@@ -92,8 +93,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             )
             
             if (registerResponse.data && isSubscribed) {
-              console.log('User registered successfully:', registerResponse.data.email)
-              setUser(registerResponse.data)
+              console.log('User registered successfully')
+              setUser(registerResponse.data as unknown as User)
             } else if (registerResponse.error && registerResponse.error.includes('already exists') && isSubscribed) {
               console.log('User already exists, attempting Firebase login')
               // User exists, try Firebase login instead
@@ -195,7 +196,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           })
           
           if (loginResponse.data?.user) {
-            setUser(loginResponse.data.user)
+            setUser(loginResponse.data.user as unknown as User)
             // Update token if backend provides JWT
             if (loginResponse.data.access_token) {
               localStorage.setItem('auth_token', loginResponse.data.access_token)
@@ -212,7 +213,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const loginResponse = await apiClient.login(email, password)
         
         if (loginResponse.data) {
-          setUser(loginResponse.data)
+          setUser(loginResponse.data as unknown as User)
           // Token is already stored by apiClient.login()
         } else {
           return { error: loginResponse.error || 'Login failed' }
@@ -269,7 +270,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         )
         
         if (registerResponse.data) {
-          setUser(registerResponse.data)
+          setUser(registerResponse.data as unknown as User)
         } else if (registerResponse.error && registerResponse.error.includes('already exists')) {
           // User already exists, try to login instead
           console.log('User already exists during registration, attempting login')
@@ -289,7 +290,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         )
         
         if (registerResponse.data) {
-          setUser(registerResponse.data)
+          setUser(registerResponse.data as unknown as User)
           // Token is already stored by apiClient.register()
         } else {
           return { error: registerResponse.error || 'Registration failed' }

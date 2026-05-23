@@ -30,7 +30,9 @@ class AuthService:
     
     def __init__(self):
         self.settings = get_settings()
-        self.secret_key = self.settings.jwt_secret_key or "histora-super-secret-key-2025"
+        if not self.settings.jwt_secret_key:
+            raise RuntimeError("JWT_SECRET_KEY environment variable must be set")
+        self.secret_key = self.settings.jwt_secret_key
         self.algorithm = self.settings.jwt_algorithm
         self.token_expire_minutes = self.settings.jwt_expire_minutes
         
@@ -214,9 +216,8 @@ class AuthService:
     def check_admin_api_key(self, api_key: str) -> bool:
         """Check admin API key."""
         admin_key = self.settings.admin_api_key
-        if not admin_key or admin_key == "":
-            # Development mode - allow default key
-            return api_key == "histora-admin-dev-2025"
+        if not admin_key:
+            return False
         return api_key == admin_key
     
     async def check_admin_permissions(self, user: User) -> bool:

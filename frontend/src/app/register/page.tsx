@@ -1,239 +1,76 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
-import { SparklesIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline'
 
 export default function RegisterPage() {
-  const [formData, setFormData] = useState({
-    displayName: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-  })
-  const [showPassword, setShowPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [name, setName] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  
-  const { register, user } = useAuth()
+  const { register } = useAuth()
   const router = useRouter()
-
-  useEffect(() => {
-    if (user) {
-      router.push('/')
-    }
-  }, [user, router])
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(prev => ({
-      ...prev,
-      [e.target.name]: e.target.value
-    }))
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
-
-    // Validation
-    if (formData.password !== formData.confirmPassword) {
-      setError('Şifreler eşleşmiyor')
-      return
-    }
-
-    if (formData.password.length < 6) {
-      setError('Şifre en az 6 karakter olmalıdır')
-      return
-    }
-
     setLoading(true)
-
-    const { error } = await register(
-      formData.email, 
-      formData.password, 
-      formData.displayName
-    )
-    
-    if (error) {
-      setError(error)
-      setLoading(false)
-    } else {
-      router.push('/')
-    }
+    const result = await register(email, password, name)
+    setLoading(false)
+    if (result.error) { setError(result.error); return }
+    router.push('/characters')
   }
 
-  const isFormValid = 
-    formData.email && 
-    formData.password && 
-    formData.confirmPassword &&
-    formData.password === formData.confirmPassword &&
-    formData.password.length >= 6
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        {/* Header */}
-        <div>
-          <div className="flex justify-center">
-            <Link href="/" className="flex items-center space-x-3">
-              <SparklesIcon className="h-12 w-12 text-blue-600" />
-              <h1 className="text-3xl font-bold text-gray-900">Histora</h1>
-            </Link>
-          </div>
-          <h2 className="mt-6 text-center text-3xl font-bold text-gray-900">
-            Hesap oluşturun
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Zaten hesabınız var mı?{' '}
-            <Link href="/login" className="font-medium text-blue-600 hover:text-blue-500">
-              Giriş yapın
-            </Link>
-          </p>
-        </div>
-
-        {/* Form */}
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="space-y-4">
-            {/* Display Name */}
-            <div>
-              <label htmlFor="displayName" className="block text-sm font-medium text-gray-700">
-                Ad Soyad
-              </label>
-              <input
-                id="displayName"
-                name="displayName"
-                type="text"
-                autoComplete="name"
-                value={formData.displayName}
-                onChange={handleChange}
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Ad ve soyadınızı girin"
-              />
-            </div>
-
-            {/* Email */}
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                E-posta adresi *
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                value={formData.email}
-                onChange={handleChange}
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="E-posta adresinizi girin"
-              />
-            </div>
-
-            {/* Password */}
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Şifre *
-              </label>
-              <div className="mt-1 relative">
-                <input
-                  id="password"
-                  name="password"
-                  type={showPassword ? 'text' : 'password'}
-                  autoComplete="new-password"
-                  required
-                  value={formData.password}
-                  onChange={handleChange}
-                  className="appearance-none relative block w-full px-3 py-2 pr-10 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                  placeholder="En az 6 karakter"
-                />
-                <button
-                  type="button"
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? (
-                    <EyeSlashIcon className="h-5 w-5 text-gray-400" />
-                  ) : (
-                    <EyeIcon className="h-5 w-5 text-gray-400" />
-                  )}
-                </button>
-              </div>
-            </div>
-
-            {/* Confirm Password */}
-            <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
-                Şifre Tekrarı *
-              </label>
-              <div className="mt-1 relative">
-                <input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  autoComplete="new-password"
-                  required
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  className="appearance-none relative block w-full px-3 py-2 pr-10 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                  placeholder="Şifrenizi tekrar girin"
-                />
-                <button
-                  type="button"
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                >
-                  {showConfirmPassword ? (
-                    <EyeSlashIcon className="h-5 w-5 text-gray-400" />
-                  ) : (
-                    <EyeIcon className="h-5 w-5 text-gray-400" />
-                  )}
-                </button>
-              </div>
-              {formData.password && formData.confirmPassword && formData.password !== formData.confirmPassword && (
-                <p className="mt-1 text-sm text-red-600">Şifreler eşleşmiyor</p>
-              )}
-            </div>
-          </div>
-
-          {/* Error Message */}
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md text-sm">
-              {error}
-            </div>
-          )}
-
-          {/* Submit Button */}
-          <div>
-            <button
-              type="submit"
-              disabled={!isFormValid || loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {loading ? (
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-              ) : (
-                'Hesap Oluştur'
-              )}
-            </button>
-          </div>
-
-          {/* Terms */}
-          <div className="text-center text-xs text-gray-600">
-            Hesap oluşturarak{' '}
-            <Link href="/terms" className="text-blue-600 hover:text-blue-500">
-              Kullanım Şartlarını
-            </Link>{' '}
-            ve{' '}
-            <Link href="/privacy" className="text-blue-600 hover:text-blue-500">
-              Gizlilik Politikasını
-            </Link>{' '}
-            kabul etmiş olursunuz.
-          </div>
-        </form>
+    <main className="onb">
+      <div className="onb-mark">
+        <span className="flame" style={{ width: 8, height: 14, filter: 'blur(0.4px)', boxShadow: '0 0 14px var(--amber)' }} />
+        <Link href="/" style={{ textDecoration: 'none' }}><span className="wordmark">Histora</span></Link>
       </div>
-    </div>
+
+      <div className="onb-center" style={{ maxWidth: 480 }}>
+        <div className="eyebrow onb-eyebrow">Join the conversation</div>
+        <h1 className="onb-title" style={{ fontSize: 'clamp(32px, 4vw, 52px)', marginBottom: 40 }}>
+          Create your <em>account</em>
+        </h1>
+
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 24, textAlign: 'left' }}>
+          {[
+            { label: 'Your name', value: name, set: setName, type: 'text' },
+            { label: 'Email', value: email, set: setEmail, type: 'email' },
+            { label: 'Password', value: password, set: setPassword, type: 'password' },
+          ].map(({ label, value, set, type }) => (
+            <div key={label}>
+              <label style={{ display: 'block', fontSize: 9, letterSpacing: '0.28em', textTransform: 'uppercase', color: 'var(--ivory-faint)', marginBottom: 8 }}>
+                {label}
+              </label>
+              <input
+                type={type} value={value} onChange={e => set(e.target.value)} required
+                style={{ width: '100%', background: 'transparent', border: 0, borderBottom: '1px solid rgba(237,232,220,0.2)', color: 'var(--ivory)', fontSize: 16, padding: '10px 0', outline: 'none', fontFamily: 'var(--sans)' }}
+              />
+            </div>
+          ))}
+
+          {error && <p style={{ color: 'var(--amber)', fontSize: 13 }}>{error}</p>}
+
+          <button type="submit" className="onb-cta" disabled={loading} style={{ alignSelf: 'flex-start' }}>
+            <span>{loading ? 'Creating account…' : 'Create account'}</span>
+            <span className="arrow">→</span>
+          </button>
+        </form>
+
+        <p style={{ marginTop: 32, color: 'var(--ivory-faint)', fontSize: 12 }}>
+          Already have an account?{' '}
+          <Link href="/login" style={{ color: 'var(--gold)', textDecoration: 'none' }}>Sign in</Link>
+        </p>
+      </div>
+
+      <div className="onb-foot">
+        <Link href="/characters" style={{ color: 'var(--ivory-faint)', textDecoration: 'none' }}>← Back to gallery</Link>
+      </div>
+    </main>
   )
 }

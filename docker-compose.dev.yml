@@ -1,0 +1,57 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: histora-postgres-dev
+    environment:
+      POSTGRES_DB: histora
+      POSTGRES_USER: histora
+      POSTGRES_PASSWORD: histora_dev_pass
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+      - ./backend/database/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U histora -d histora"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - histora-dev-net
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+      target: runtime
+    container_name: histora-backend-dev
+    environment:
+      DATABASE_URL: postgresql+asyncpg://histora:histora_dev_pass@postgres:5432/histora
+      ENVIRONMENT: development
+      DEBUG: "true"
+      DEV_SHOW_DOCS: "true"
+      DEV_CORS_ALLOW_ALL: "true"
+      ALLOWED_ORIGINS: "http://localhost:3000"
+      JWT_SECRET_KEY: dev-jwt-secret-key-change-in-production-min-32
+      ADMIN_API_KEY: dev-admin-key-change-in-production
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app          # Hot reload via volume mount
+      - uploads_dev:/app/uploads
+    command: ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    networks:
+      - histora-dev-net
+
+volumes:
+  postgres_dev_data:
+  uploads_dev:
+
+networks:
+  histora-dev-net:
+    name: histora-dev-network

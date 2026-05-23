@@ -8,7 +8,6 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 import jwt
-from datetime import datetime, timedelta
 import structlog
 
 from app.core.config import get_settings
@@ -33,40 +32,6 @@ async def get_current_user(
     db: AsyncSession = Depends(get_async_session)
 ) -> User:
     """Get current authenticated user."""
-    
-    # Development mode: allow without authentication
-    settings = get_settings()
-    if settings.environment == "development" and not credentials:
-        # Return a mock user for development - try to find existing or create one
-        try:
-            # Look for existing demo user
-            stmt = select(User).where(User.email == "demo@histora.com")
-            result = await db.execute(stmt)
-            existing_user = result.scalar_one_or_none()
-            
-            if existing_user:
-                return existing_user
-        except Exception:
-            pass  # Database might not be available
-        
-        # Create a mock user object that won't cause database issues
-        class MockUser:
-            def __init__(self):
-                # Use a fixed UUID for consistency
-                self.id = uuid.UUID('12345678-1234-5678-9abc-123456789abc')
-                self.email = "demo@histora.com"
-                self.full_name = "Demo User"
-                self.role = "user"
-                self.is_admin = False
-                self.is_active = True
-                self.language_preference = "tr"
-                self.created_at = datetime.now()
-                self.last_login_at = datetime.now()
-                # Add fields that might be accessed
-                self.firebase_uid = "demo-firebase-uid"
-                self.email_verified = True
-        
-        return MockUser()
     
     if not credentials:
         raise HTTPException(
@@ -182,21 +147,6 @@ async def check_user_quota(
 ) -> Dict[str, Any]:
     """Check if user has enough quota for the request."""
     
-    # Development mode: always allow for mock users
-    settings = get_settings()
-    if (settings.environment == "development" and 
-        hasattr(current_user, '__class__') and 
-        current_user.__class__.__name__ == 'MockUser'):
-        return {
-            "allowed": True,
-            "quota": {
-                "plan_type": "development",
-                "tokens_remaining": 10000,
-                "requests_remaining": 1000
-            },
-            "limits_exceeded": {"tokens": False, "requests": False}
-        }
-    
     usage_service = UsageService()
     
     try:
@@ -280,14 +230,5 @@ async def rate_limit_chat(
     current_user: User = Depends(get_current_user)
 ) -> None:
     """Rate limiting for chat requests."""
-    # Development mode: no rate limiting for mock users
-    settings = get_settings()
-    if (settings.environment == "development" and 
-        hasattr(current_user, '__class__') and 
-        current_user.__class__.__name__ == 'MockUser'):
-        return
-    
-    # TODO: Implement actual rate limiting logic
-    # This could check Redis or database for request frequency
-    # For now, we'll just pass through
+    # TODO: Implement Redis-backed rate limiting
     pass

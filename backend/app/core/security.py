@@ -104,17 +104,6 @@ async def verify_admin_access(
         except HTTPException:
             pass  # Fall through to unauthorized
     
-    # Development mode: Allow bypass with special header
-    dev_bypass = request.headers.get("X-Dev-Admin-Bypass")
-    if dev_bypass == "histora-dev-2025" and auth_service.settings.environment == "development":
-        logger.warning("Admin access granted via development bypass")
-        return {
-            "method": "dev_bypass",
-            "admin": True,
-            "user_id": "dev_admin",
-            "role": "super_admin"
-        }
-    
     # No valid authentication found
     raise HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,

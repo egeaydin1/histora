@@ -1,40 +1,28 @@
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import "./globals.css";
-import { AuthProvider } from "@/contexts/AuthContext";
-import Navbar from "@/components/Navbar";
-
-const inter = Inter({ subsets: ["latin"] });
+import type { Metadata } from 'next'
+import './globals.css'
+import { AuthProvider } from '@/contexts/AuthContext'
 
 export const metadata: Metadata = {
-  title: "Histora - AI Historical Figures Chat Platform",
-  description: "Tarihi figürlerle gerçekçi sohbetler yapın. Atatürk, Mevlana, Konfüçyüs ve daha fazlasıyla konuşun.",
-  keywords: ["AI", "Historical Figures", "Chat", "Education", "Turkey", "History"],
-  authors: [{ name: "Histora Team" }],
-  openGraph: {
-    title: "Histora - AI Historical Figures Chat",
-    description: "Tarihi figürlerle gerçekçi sohbetler yapın",
-    type: "website",
-  },
-};
+  title: 'Histora — Speak with the minds that shaped history',
+  description: 'Histora is a quiet room. Inside, the minds who changed the world are willing to sit and answer a few honest questions.',
+}
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="tr" className="h-full" suppressHydrationWarning>
-      <body className={`${inter.className} h-full antialiased bg-gray-50`} suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=Inter:wght@300;400;500;600&display=swap"
+          rel="stylesheet"
+        />
+      </head>
+      <body suppressHydrationWarning>
         <AuthProvider>
-          <div className="min-h-full">
-            <Navbar />
-            <main>
-              {children}
-            </main>
-          </div>
+          {children}
         </AuthProvider>
       </body>
     </html>
-  );
+  )
 }

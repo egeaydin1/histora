@@ -1,39 +1,96 @@
 services:
-  # PostgreSQL Database
+  # ── PostgreSQL ────────────────────────────────────────────────────────────
   postgres:
-    image: postgres:15
+    image: postgres:15-alpine
     container_name: histora-postgres
     environment:
-      POSTGRES_DB: histora
-      POSTGRES_USER: histora
-      POSTGRES_PASSWORD: histora123
-      POSTGRES_HOST_AUTH_METHOD: trust
+      POSTGRES_DB: ${DB_NAME:-histora}
+      POSTGRES_USER: ${DB_USER:-histora}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
     ports:
-      - "5433:5432"
+      - "${DB_PORT_EXPOSE:-5433}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./backend/database/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./backend/database/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U histora -d histora"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-histora} -d ${DB_NAME:-histora}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - histora-net
+
+  # ── Backend (FastAPI) ─────────────────────────────────────────────────────
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: histora-backend
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${DB_USER:-histora}:${DB_PASSWORD}@postgres:5432/${DB_NAME:-histora}
+      ENVIRONMENT: ${ENVIRONMENT:-production}
+      DEBUG: "false"
+      DEV_CORS_ALLOW_ALL: "false"
+      DEV_SHOW_DOCS: "false"
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000}
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - uploads_data:/app/uploads
+      - logs_data:/app/logs
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 20s
     restart: unless-stopped
+    networks:
+      - histora-net
 
-  # Redis Cache (optional - to be added later)
-  # redis:
-  #   image: redis:7-alpine
-  #   container_name: histora-redis
-  #   ports:
-  #     - "6379:6379"
-  #   volumes:
-  #     - redis_data:/data
-  #   restart: unless-stopped
+  # ── Frontend (Next.js) ────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+        NEXT_PUBLIC_FIREBASE_API_KEY: ${NEXT_PUBLIC_FIREBASE_API_KEY:-}
+        NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN:-}
+        NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${NEXT_PUBLIC_FIREBASE_PROJECT_ID:-}
+        NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ${NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET:-}
+        NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID:-}
+        NEXT_PUBLIC_FIREBASE_APP_ID: ${NEXT_PUBLIC_FIREBASE_APP_ID:-}
+    container_name: histora-frontend
+    environment:
+      NODE_ENV: production
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - histora-net
 
 volumes:
   postgres_data:
-  # redis_data:
+  uploads_data:
+  logs_data:
 
 networks:
-  default:
+  histora-net:
     name: histora-network
+    driver: bridge
