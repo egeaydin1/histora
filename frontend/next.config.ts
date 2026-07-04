@@ -3,6 +3,9 @@ import { join } from "path";
 
 const nextConfig: NextConfig = {
   output: 'standalone',
+  // Pass trailing-slash API paths straight to the rewrite — otherwise Next 308s
+  // to the slashless path and FastAPI 307s back, leaking the internal host.
+  skipTrailingSlashRedirect: true,
   // Specify the root directory for output file tracing to silence multiple lockfiles warning
   outputFileTracingRoot: join(__dirname, '../'),
   // Railway deployment optimizations
