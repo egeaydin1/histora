@@ -84,7 +84,8 @@ def create_app() -> FastAPI:
         )
         app.add_middleware(
             TrustedHostMiddleware,
-            allowed_hosts=[backend_host, "localhost", "127.0.0.1"],
+            # "backend" is the docker-network hostname used by the Next.js proxy
+            allowed_hosts=[backend_host, "backend", "localhost", "127.0.0.1"],
         )
     
     # Request timing middleware

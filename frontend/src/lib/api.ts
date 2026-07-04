@@ -1,6 +1,8 @@
 // Histora API client
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+// Empty string → same-origin requests, proxied to the backend via Next.js
+// rewrites (see next.config.ts). Works from any host: LAN IP, tunnel, localhost.
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
 function getAuthHeader(): Record<string, string> {
   if (typeof window === 'undefined') return {}

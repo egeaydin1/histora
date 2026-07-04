@@ -14,12 +14,13 @@ const nextConfig: NextConfig = {
     CUSTOM_KEY: process.env.CUSTOM_KEY,
   },
   
-  // API rewrites if needed
+  // Same-origin /api/* is proxied to the backend. INTERNAL_API_URL points at
+  // the docker-network backend service; falls back to localhost for local dev.
   async rewrites() {
     return [
       {
         source: '/api/:path*',
-        destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/:path*`
+        destination: `${process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/:path*`
       }
     ]
   },
