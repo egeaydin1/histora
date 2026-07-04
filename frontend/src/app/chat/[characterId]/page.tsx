@@ -9,6 +9,7 @@ import { padCatalogNumber, generateId } from '@/lib/utils'
 import { CandleAudio } from '@/components/histora/CandleAudio'
 import { useAuth } from '@/contexts/AuthContext'
 import { sfx } from '@/lib/sounds'
+import { useLang, LangToggle } from '@/lib/i18n'
 
 interface Msg {
   id: string
@@ -29,6 +30,7 @@ export default function ChatPage() {
   const { characterId } = useParams<{ characterId: string }>()
   const router = useRouter()
   const { user } = useAuth()
+  const { t, lang } = useLang()
 
   const [character, setCharacter] = useState<ApiCharacter | null>(null)
   const [messages, setMessages] = useState<Msg[]>([])
@@ -52,10 +54,10 @@ export default function ChatPage() {
         return
       }
       setCharacter(data)
-      const enrichment = getEnrichment(data.id, data)
+      const enrichment = getEnrichment(data.id, data, lang)
       setMessages([{ id: generateId(), role: 'figure', text: enrichment.opener }])
     })
-  }, [characterId])
+  }, [characterId, lang])
 
   // Scroll to bottom
   useEffect(() => {
@@ -80,7 +82,7 @@ export default function ChatPage() {
       setMessages(m => [...m, {
         id: generateId(),
         role: 'figure',
-        text: `Our demo conversation has reached its end — ${DEMO_LIMIT} messages, and you have used them well. Sign in, and we may speak without limits.`,
+        text: t('chat.demo.limit.msg', { n: DEMO_LIMIT }),
       }])
       return
     }
@@ -104,7 +106,7 @@ export default function ChatPage() {
         character_id: character.id,
         message: clean,
         history,
-        language: 'en',
+        language: lang,
       })
 
       if (error || !data) {
@@ -112,8 +114,8 @@ export default function ChatPage() {
           id: generateId(),
           role: 'figure',
           text: error?.includes('429') || error?.toLowerCase().includes('limit')
-            ? 'The demo hours of the gallery are over for today. Sign in, and we may continue.'
-            : 'A worthy question. Let me sit with it a moment. (I appear to have lost my train of thought — please try again.)',
+            ? t('chat.demo.day.msg')
+            : t('chat.error'),
         }])
       } else {
         const used = getDemoUsed() + 1
@@ -131,7 +133,7 @@ export default function ChatPage() {
       character_id: character.id,
       message: clean,
       session_id: sessionId || undefined,
-      language: 'en',
+      language: lang,
       mode: 'chat',
     })
 
@@ -139,7 +141,7 @@ export default function ChatPage() {
       setMessages(m => [...m, {
         id: generateId(),
         role: 'figure',
-        text: 'A worthy question. Let me sit with it a moment. (I appear to have lost my train of thought — please try again.)',
+        text: t('chat.error'),
       }])
     } else {
       if (!sessionId) setSessionId(data.session_id)
@@ -148,17 +150,17 @@ export default function ChatPage() {
     setTyping(false)
     sfx.thinkStop()
     sfx.receive()
-  }, [character, sessionId, user, messages])
+  }, [character, sessionId, user, messages, lang, t])
 
-  const enrichment = character ? getEnrichment(character.id, character) : null
+  const enrichment = character ? getEnrichment(character.id, character, lang) : null
   const catNo = character ? padCatalogNumber(1) : '001'
 
   if (loadError) {
     return (
       <div className="state-center">
-        <div className="eyebrow">Character not found</div>
+        <div className="eyebrow">{t('chat.notfound')}</div>
         <p>{loadError}</p>
-        <Link href="/characters">← Return to gallery</Link>
+        <Link href="/characters">{t('chat.return')}</Link>
       </div>
     )
   }
@@ -182,7 +184,7 @@ export default function ChatPage() {
             <div className="top">
               <Link href="/characters" className="chat-back">
                 <span className="arrow">←</span>
-                <span>The Gallery</span>
+                <span>{t('chat.back')}</span>
               </Link>
               <span className="catno">№&nbsp;{catNo}</span>
             </div>
@@ -205,18 +207,18 @@ export default function ChatPage() {
 
             <div className="aside-meta">
               <div className="col">
-                <div className="lbl">Lifespan</div>
+                <div className="lbl">{t('chat.lifespan')}</div>
                 <div className="val">{enrichment?.lifespan}</div>
               </div>
               <div className="col">
-                <div className="lbl">Domain</div>
+                <div className="lbl">{t('chat.domain')}</div>
                 <div className="val">{enrichment?.domain}</div>
               </div>
             </div>
 
             <div className="aside-quote">
               "{enrichment?.quote}"
-              <span className="attr">— Attributed to {character.name.split(' ').slice(-1)[0]}</span>
+              <span className="attr">— {t('chat.attributed')} {character.name.split(' ').slice(-1)[0]}</span>
             </div>
           </div>
         </aside>
@@ -225,12 +227,13 @@ export default function ChatPage() {
         <section className="chat-main">
           <header className="chat-header">
             <div className="crumb">
-              <b>Conversation</b>
+              <b>{t('chat.conversation')}</b>
               <span style={{ margin: '0 14px', opacity: 0.5 }}>·</span>
-              <span>Begun this evening</span>
+              <span>{t('chat.begun')}</span>
             </div>
             <div className="actions">
-              <button onMouseEnter={() => sfx.hover()} onClick={() => { sfx.click(); router.push('/characters') }}>Close</button>
+              <LangToggle onSwitch={() => sfx.click()} />
+              <button onMouseEnter={() => sfx.hover()} onClick={() => { sfx.click(); router.push('/characters') }}>{t('chat.close')}</button>
             </div>
           </header>
 
@@ -251,7 +254,7 @@ export default function ChatPage() {
           {/* Suggested prompts — only when thread is fresh */}
           {messages.length <= 1 && !typing && enrichment && (
             <div className="prompts">
-              <div className="label">Ask {character.name.split(' ')[0]} about</div>
+              <div className="label">{t('chat.ask', { name: character.name.split(' ')[0] })}</div>
               <div className="chips">
                 {enrichment.prompts.map((p, i) => (
                   <button key={i} className="chip quill" onMouseEnter={() => sfx.hover()} onClick={() => send(p)}>
@@ -267,13 +270,13 @@ export default function ChatPage() {
             <div className="auth-banner">
               <span>
                 {demoUsed < DEMO_LIMIT
-                  ? <>Demo conversation · <b style={{ color: 'var(--gold)' }}>{DEMO_LIMIT - demoUsed}</b> of {DEMO_LIMIT} messages left</>
-                  : <>Demo limit reached — sign in to keep talking with {character.name.split(' ')[0]}.</>}
+                  ? <>{t('chat.demo.left.1')} <b style={{ color: 'var(--gold)' }}>{DEMO_LIMIT - demoUsed}</b> {t('chat.demo.left.2')} {DEMO_LIMIT} {t('chat.demo.left.3')}</>
+                  : <>{t('chat.demo.over', { name: character.name.split(' ')[0] })}</>}
               </span>
               <span>
-                <Link href="/login">Sign in</Link>
+                <Link href="/login">{t('chat.signin')}</Link>
                 {' '}&nbsp;·&nbsp;{' '}
-                <Link href="/register">Create account</Link>
+                <Link href="/register">{t('chat.register')}</Link>
               </span>
             </div>
           )}
@@ -291,7 +294,7 @@ export default function ChatPage() {
                     send(draft)
                   }
                 }}
-                placeholder={`Write to ${character.name.split(' ').slice(-1)[0]}…`}
+                placeholder={t('chat.write', { name: character.name.split(' ').slice(-1)[0] })}
                 rows={1}
                 disabled={typing}
               />
@@ -300,10 +303,10 @@ export default function ChatPage() {
                 onClick={() => send(draft)}
                 disabled={typing}
               >
-                <span>Send</span>
+                <span>{t('chat.send')}</span>
                 <span style={{ fontFamily: 'var(--serif)', fontSize: 16, letterSpacing: 0 }}>→</span>
               </button>
-              <div className="hint">Return to send · Shift + Return for a new line</div>
+              <div className="hint">{t('chat.hint')}</div>
             </div>
           </div>
         </section>

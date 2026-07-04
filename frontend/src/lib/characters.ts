@@ -397,6 +397,298 @@ const ENRICHMENT: Record<string, CharacterEnrichment> = {
   },
 }
 
+// Turkish overlay — merged over the English enrichment when lang === 'tr'.
+// Keys match ENRICHMENT keys; missing fields fall back to English.
+const ENRICHMENT_TR: Record<string, Partial<CharacterEnrichment>> = {
+  'socrates': {
+    quote: 'Sorgulanmamış hayat, yaşanmaya değmez.',
+    domain: 'Felsefe', era: 'Antik Yunan · MÖ 470',
+    desc: 'Atina’nın cevabını istemediği soruları sordu.',
+    prompts: ['“Kendini bil” derken neyi kastettin?', 'Mahkeme bir zafer miydi, yenilgi mi?', 'Bir insana düşünmeyi nasıl öğretirsin?'],
+    opener: 'Benimle konuşmak istedin. Güzel. Ama seni uyarayım — cevap getirmem, yalnızca daha iyi sorular. Kafanın karıştığı yerden başla; ayakta durulacak en dürüst yer orasıdır.',
+  },
+  'marcus': {
+    quote: 'Zihnin üzerinde gücün var — dış olaylar üzerinde değil.',
+    domain: 'Felsefe', era: 'Roma İmparatorluğu · 161',
+    desc: 'İmparatorluk için değil, kendisi için yazan bir imparator.',
+    prompts: ['İmparatorluğun yükünü nasıl taşıdın?', 'Stoacılık teselli miydi, disiplin mi?', 'Bugün endişeli bir insana ne söylerdin?'],
+    opener: 'Açık konuş. Süse tahammülüm az — o zamanlar da azdı, şimdi daha da az. Düşünceler okurlar için yazılmadı; her sabah yüzleşmek zorunda olduğum adam için yazıldı.',
+  },
+  'davinci': {
+    quote: 'Sadelik, ustalığın son noktasıdır.',
+    domain: 'Sanat ve Bilim', era: 'Floransa · 1490',
+    desc: 'Dünyanın içini de dışı kadar özenle çizdi.',
+    prompts: ['Defterler tek bir eser gibi miydi?', 'Uçuşta başkalarının kaçırdığı neyi gördün?', 'Neden bu kadar az bitmiş tablo?'],
+    opener: 'Hoş geldin. Mürekkebe dikkat et — hâlâ ıslak. Yay çeken bir adamın omzunu çiziyordum. Evet — birlikte neye bakalım?',
+  },
+  'ada': {
+    quote: 'Analitik Makine, cebirsel desenler dokur.',
+    domain: 'Matematik', era: 'Londra · 1843',
+    desc: 'Bir makineye baktı ve müzik besteleyebileceğini gördü.',
+    prompts: ['Makinenin düşüneceğine inandın mı?', 'Babbage gerçekte nasıl biriydi?', 'Neden kendi makalen değil de notlar?'],
+    opener: 'İyi akşamlar. Beni çeviri ortasında yakaladın — Menabrea’nın Bay Babbage’ın Makinesi üzerine yazısı. İtiraf edeyim, notlarım orijinalini epey aştı.',
+  },
+  'shakespeare': {
+    quote: 'Bütün dünya bir sahnedir.',
+    domain: 'Edebiyat', era: 'Londra · 1601',
+    desc: 'Bugün kullandığın kelimelerin yarısını o icat etti.',
+    prompts: ['Hamlet’i deli mi yazdın?', 'Bu kadar hızlı nasıl yazdın?', 'Hangi dizeni korumak en zordu?'],
+    opener: 'Otur, otur. Mumu mazur gör — tiyatro bizi geç bırakır, ben de en iyi küçük bir alevde karalarım.',
+  },
+  'curie': {
+    quote: 'Hayatta hiçbir şeyden korkulmaz, yalnızca anlaşılır.',
+    domain: 'Fizik ve Kimya', era: 'Paris · 1898',
+    desc: 'Bir elementin anlamını iki kez değiştirdi.',
+    prompts: ['Çalışmanın sana zarar verdiğini biliyor muydun?', 'Paris’teki baraka nasıldı?', 'Genç bir araştırmacıya ne öğütlersin?'],
+    opener: 'Bonsoir. Doğrudan konuşacağım; saat geç ve tartılacak pekblend var. Sor soracağını.',
+  },
+  'lincoln': {
+    quote: 'Yavaş yürürüm ama asla geri yürümem.',
+    domain: 'Devlet Adamlığı', era: 'Birleşik Devletler · 1863',
+    desc: 'Bir ülkeyi neredeyse yalnızca dille bir arada tuttu.',
+    prompts: ['Gettysburg’u bu kadar az sözle nasıl yazdın?', 'Savaşın kazanılacağından şüphe ettin mi?', 'Merhamet bir lidere neye mal olur?'],
+    opener: 'İyi akşamlar. Bir sandalye çek — ateş yeterince sıcak. Törenle işim olmadı; cilalı bir sorudansa gerçek bir soruyu yeğlerim.',
+  },
+  'frida': {
+    quote: 'Kendimi resmediyorum, çünkü çoğu zaman yalnızım.',
+    domain: 'Resim', era: 'Meksika · 1939',
+    desc: 'Bedeni dürüst kıldı. Acıyı tanık yaptı.',
+    prompts: ['Neden bu kadar çok otoportre?', 'Diego neyi anladı, neyi anlamadı?', 'Resim bir çıkış mıydı, giriş mi?'],
+    opener: 'Pásale. Buranın ışığı kötü ama benim. Ne öğrenmek istersin?',
+  },
+  'cleopatra': {
+    quote: 'Zafer alayında sergilenmeyeceğim.',
+    domain: 'Devlet Yönetimi', era: 'Ptolemaios Mısırı · MÖ 41',
+    desc: 'Dokuz dil konuştu. Roma’yla hepsinde pazarlık etti.',
+    prompts: ['Roma seni neden yanlış anladı?', 'Sezar bir müttefik miydi, hesap mı?', 'İskenderiye Kütüphanesi’ni anlat.'],
+    opener: 'Benimle konuşmak için uzun yoldan geldin; bu bile sana birkaç dakika kazandırır. Dikkatli ol — hakkımda okuduğun tarihleri düşmanlarım yazdı.',
+  },
+  'ataturk-001': {
+    quote: 'Ne mutlu Türküm diyene.',
+    domain: 'Devlet Adamlığı', era: 'Modern Türkiye · 1923',
+    desc: 'Bir imparatorluğun küllerinden cumhuriyet kurdu.',
+    prompts: ['Devrimlere ilham veren neydi?', 'Geleceğin Türkiye’sini nasıl hayal ettin?', 'Tam bağımsızlık ne demektir?'],
+    opener: 'İyi günler. Açık konuşurum, aynısını beklerim. Kurduğumuz cumhuriyet bir nesil için değildi — sonra gelecek herkes içindi. Ne öğrenmek istersin?',
+  },
+  'mevlana-001': {
+    quote: 'Gel, gel, ne olursan ol yine gel.',
+    domain: 'Tasavvuf ve Şiir', era: 'Anadolu · 13. Yüzyıl',
+    desc: 'Tanrı’yı semazenin dönüşünde ve neyin feryadında buldu.',
+    prompts: ['Mesnevi aslında neyi anlatır?', 'Aşk nedir, kendi sözlerinle?', 'Ney neden ağlar?'],
+    opener: 'Hoş geldin, yolcu. Gönül kapısına gelen her konuk bir mesajdır. Otur, gerçekten önemli olanı konuşalım.',
+  },
+  'konfucyus-001': {
+    quote: 'Ne kadar yavaş gittiğin önemli değil, yeter ki durma.',
+    domain: 'Felsefe', era: 'Çin · MÖ 500',
+    desc: 'Erdemin evde başlayıp devlete yayıldığını öğretti.',
+    prompts: ['Üstün insan kimdir?', 'Bir hükümdar nasıl yönetmeli?', 'Ren kavramı ne demektir?'],
+    opener: 'Selamlar. Ben yalnızca, tam bir insan olmanın ne demek olduğunu anlamaya yıllarını vermiş bir öğrenciyim. Belki birlikte düşünebiliriz.',
+  },
+  'fatih-001': {
+    quote: 'Ya ben İstanbul’u alırım, ya İstanbul beni.',
+    domain: 'Devlet Yönetimi', era: 'Osmanlı · 1453',
+    desc: 'Alınamaz denen şehri yirmi bir yaşında aldı.',
+    prompts: ['Gemileri karadan nasıl yürüttün?', 'Ayasofya’ya girerken ne hissettin?', 'Neden Venedikli bir ressama poz verdin?'],
+    opener: 'Bir çağı kapatıp yenisini açanın huzurundasın. Konuş — âlimleri de topçuları da dinledim; eğik bir baştansa iyi bir soruyu yeğlerim.',
+  },
+  'kanuni-001': {
+    quote: 'Olmaya devlet cihanda bir nefes sıhhat gibi.',
+    domain: 'Devlet ve Şiir', era: 'Osmanlı Altın Çağı · 1550',
+    desc: 'Kırk altı yıl hüküm sürdü; mahlasla aşk şiirleri yazdı.',
+    prompts: ['Bir kanunu adil kılan nedir?', 'Hürrem’i anlat.', 'Kırk altı yıl tahtta olmak nasıl bir yük?'],
+    opener: 'Divanıma hoş geldin. Ülkemde Kanuni derler, ötesinde Muhteşem — ama bu akşam yalnızca Muhibbi’yim, konuğunu ağırlayan bir şair. Sor.',
+  },
+  'caesar-001': {
+    quote: 'Veni, vidi, vici.',
+    domain: 'Devlet ve Savaş', era: 'Roma Cumhuriyeti · MÖ 49',
+    desc: 'Küçük bir nehri geçti, bir cumhuriyeti bitirdi.',
+    prompts: ['Rubicon’u neden geçtin?', 'Brutus’a güvendin mi?', 'Askerler bir komutanı neden sever?'],
+    opener: 'Caesar seni kabul ediyor. Övmek istiyorsan kısa kes, ilgimi çekmek istiyorsan cesur ol — ben hep ikincisini tercih ettim.',
+  },
+  'napoleon-001': {
+    quote: 'İmkânsız, yalnızca aptalların sözlüğünde bulunur.',
+    domain: 'Devlet ve Savaş', era: 'Fransız İmparatorluğu · 1805',
+    desc: 'Avrupa haritasını yeniden çizen Korsikalı topçu.',
+    prompts: ['Austerlitz’i ne kazandırdı?', 'Taç, sürgüne değdi mi?', 'Büyük planlı küçük adamlar hakkında ne dersin?'],
+    opener: 'Otur. Sorularının hak ettiği kadar vaktim var — bu çok da olabilir, hiç de. Austerlitz’te sisin kalkmasını bekledim; senin başlamanı da beklerim.',
+  },
+  'churchill-001': {
+    quote: 'Cehennemden geçiyorsan, yürümeye devam et.',
+    domain: 'Devlet ve Kalem', era: 'Britanya · 1940',
+    desc: 'İngilizceyi silahlandırıp cepheye sürdü.',
+    prompts: ['Britanya’yı 1940’ta ne ayakta tuttu?', 'Gelibolu için pişman mısın?', 'Bir ulusu ayağa kaldıran konuşma nasıl yazılır?'],
+    opener: 'Gir, gir. Puro dumanını mazur gör — pazarlığı reddettiğim tek cephe budur. Evet, aklında ne var?',
+  },
+  'genghis-001': {
+    quote: 'Beni cezalandırmak için gönderdiler; büyük günahlarınız olmasaydı gelmezdim.',
+    domain: 'Devlet ve Savaş', era: 'Moğol İmparatorluğu · 1206',
+    desc: 'Sürgün bir çocuktu; bozkırı birleştirdi, dünyayı salladı.',
+    prompts: ['Generallerini nasıl seçtin?', 'Yasa nedir?', 'Sürgün sana ne öğretti?'],
+    opener: 'Kurultayın Cengiz Han adını verdiği Temüçin’le konuşuyorsun. Sözlerimi ok gibi taşırım — az ve nişanlı. Sormaya geldiğini sor.',
+  },
+  'gandhi-001': {
+    quote: 'Dünyada görmek istediğin değişimin kendisi ol.',
+    domain: 'Devlet ve Ahlak', era: 'Hindistan · 1930',
+    desc: 'Bir tutam tuzla bir imparatorluğu salladı.',
+    prompts: ['Şiddetsizlik güç müdür, sabır mı?', 'Neden tuz yürüyüşü?', 'Hakikat gerçekten silah olabilir mi?'],
+    opener: 'Hoş geldin, dostum. Yere, yanıma otur — sandalyeler insanların arasına fazla mesafe koyar. Yavaş cevap verdiğimi göreceksin; hakikat aceleye getirilmemeli.',
+  },
+  'plato-001': {
+    quote: 'Bir insanın ölçüsü, gücü elinde tuttuğunda yaptıklarıdır.',
+    domain: 'Felsefe', era: 'Antik Atina · MÖ 380',
+    desc: 'Mağaradan çıktı; ömrünü ışığı anlatmakla geçirdi.',
+    prompts: ['Mağara aslında nedir?', 'Filozoflar mı yönetmeli?', 'Sokrates’in ölümü sana ne öğretti?'],
+    opener: 'Beni Akademia’da, iki ders arasında buldun. Sokrates bana bir diyaloğun yüz dersten değerli olduğunu öğretti — öyleyse bir diyalog kuralım.',
+  },
+  'aristotle-001': {
+    quote: 'Tekrar tekrar yaptığımız şeyiz. Mükemmellik bir eylem değil, alışkanlıktır.',
+    domain: 'Felsefe ve Bilim', era: 'Antik Yunan · MÖ 340',
+    desc: 'Deniz kestanesinden kıyasa her şeyi kataloguna işledi.',
+    prompts: ['Altın orta nedir?', 'İskender nasıl bir öğrenciydi?', 'Mutlu olmak için nasıl yaşamalı?'],
+    opener: 'Lykeion’a hoş geldin. Yürürken düşünmeyi severim — ama senin için oturacağım. Sorunu iyi tanımla; yarısı kendiliğinden cevaplanır.',
+  },
+  'descartes-001': {
+    quote: 'Düşünüyorum, öyleyse varım.',
+    domain: 'Felsefe ve Matematik', era: 'Bilimsel Devrim · 1637',
+    desc: 'Her şeyden kuşku duydu; sarsılmaz tek taş buldu.',
+    prompts: ['Mutlak kuşkudan geriye ne kalır?', 'Cebirle geometri nerede buluşur?', 'Neden Latince değil Fransızca yazdın?'],
+    opener: 'Ah, bir ziyaretçi — hem de öğleden önce, ki bunu bir şiddet eylemi sayarım. Zararı yok. Bildiğini sandığın her şeyden kuşku duy, oradan başlayalım.',
+  },
+  'nietzsche-001': {
+    quote: 'Yaşamak için bir “neden”i olan, hemen her “nasıl”a katlanır.',
+    domain: 'Felsefe', era: '19. Yüzyıl Avrupası · 1883',
+    desc: 'Çekiçle felsefe yaptı; uçurumda müzik duydu.',
+    prompts: ['Übermensch nedir?', '“Tanrı öldü” derken neyi kastettin?', 'Amor fati ne demek?'],
+    opener: 'Demek benim irtifama tırmandın. Güzel — buranın havası incedir ama dürüsttür. Uyarayım: teselli vermem. Keskin kenarlar veririm.',
+  },
+  'kant-001': {
+    quote: 'Bilmeye cesaret et! Kendi aklını kullanma yürekliliğini göster.',
+    domain: 'Felsefe', era: 'Aydınlanma · 1781',
+    desc: 'Königsberg’den hiç ayrılmadı; aklın sınırlarını haritaladı.',
+    prompts: ['Kategorik imperatif nedir?', 'Akıl neyi asla bilemez?', 'Aydınlanma nedir?'],
+    opener: 'Dakiksin — en çok değer verdiğim erdem. Öğleden sonraki yürüyüşüme kadar vaktimiz var; komşularım doğrular, o yürüyüş şaşmaz. Buyur.',
+  },
+  'ibnhaldun-001': {
+    quote: 'Coğrafya kaderdir.',
+    domain: 'Tarih ve Toplum', era: 'İslam Altın Çağı · 1377',
+    desc: 'Devletlerin yükselişini bir hekimin nabız okuyuşu gibi okudu.',
+    prompts: ['Asabiyye nedir?', 'Hanedanlar neden üç kuşak sürer?', 'Timur’la ne konuştunuz?'],
+    opener: 'Hoş geldin. Sultanlara hizmet ettim, zindanlarından sağ çıktım; bu beni hem sarayların hem hücrelerin âdil bir yargıcı yapar. Tarihin desenleri vardır — birini birlikte izleyelim mi?',
+  },
+  'einstein-001': {
+    quote: 'Hayal gücü bilgiden daha önemlidir.',
+    domain: 'Fizik', era: 'Modern Fizik · 1905',
+    desc: 'Bir ışık huzmesine bindi; yeni bir evrenle döndü.',
+    prompts: ['Görelilik nedir, basitçe?', 'Neden “Tanrı zar atmaz” dedin?', 'Patent ofisi sana ne öğretti?'],
+    opener: 'Gir, gir! Saçları mazur gör — yıllar önce benden emir almayı bıraktılar. Evet, birlikte bir düşünce deneyi yapalım mı? En ucuz laboratuvar onlardır.',
+  },
+  'newton-001': {
+    quote: 'Daha uzağı gördüysem, devlerin omuzlarında durduğum içindir.',
+    domain: 'Fizik ve Matematik', era: 'Bilimsel Devrim · 1687',
+    desc: 'Düşen elmayla dönen Ay’da aynı yasayı gördü.',
+    prompts: ['Elma gerçekten düştü mü?', 'Veba yıllarında ne oldu?', 'Kalkülüsü neden icat ettin?'],
+    opener: 'Meramını açıkça söyle. Bu gece yörüngelerin geometrisine fazla saat verdim, kelime israf etmem — ama sahici bir soru beni cömert bulur.',
+  },
+  'tesla-001': {
+    quote: 'Bugün onların; ama uğruna çalıştığım gelecek benim.',
+    domain: 'Mühendislik ve İcat', era: 'Elektrik Çağı · 1893',
+    desc: 'Dünyayı alternatif akımla aydınlattı; kablosuzunu hayal etti.',
+    prompts: ['Makineleri kafanda nasıl görüyordun?', 'Edison’la ne oldu?', 'Enerjinin geleceği nedir?'],
+    opener: 'Hoş geldin! Ben hesap yaparken geldin — ben hep hesap yaparım. Otur, ama bobinlere dokunma; üç milyon volt taşırlar ve espriden anlamazlar.',
+  },
+  'galileo-001': {
+    quote: 'Yine de dönüyor.',
+    domain: 'Astronomi ve Fizik', era: 'Bilimsel Devrim · 1610',
+    desc: 'Teleskopu göğe çevirdi; gökleri yeryüzüne indirdi.',
+    prompts: ['Teleskopta ilk neyi gördün?', 'Sözünü geri almak yenilgi miydi?', 'Matematik neden doğanın dilidir?'],
+    opener: 'Pencereye gel — gökyüzü bu gece açık ve Jüpiter yine aylarıyla gösteriş yapıyor. Onları ben keşfettim, bilirsin. Kiliseyle bunu... tartıştık. Birlikte neyi gözleyelim?',
+  },
+  'darwin-001': {
+    quote: 'Hayatta kalan en güçlü tür değil, değişime en iyi uyum sağlayandır.',
+    domain: 'Doğa Tarihi', era: 'Viktorya Dönemi · 1859',
+    desc: 'Yaşamın tarihini ispinozlarda ve kayaların içinde okudu.',
+    prompts: ['Galápagos sana ne gösterdi?', 'Yayımlamak için neden yirmi yıl bekledin?', 'Doğal seçilim nedir, nazikçe?'],
+    opener: 'Buyur — deniz kabuklarına dikkat et. Büyük teoriler küçük canlılarda saklanır; ben ikisine de gözlerimi kısarak bakmaktan bir kariyer çıkardım. Sorun nedir?',
+  },
+  'lovelace-001': {
+    quote: 'Analitik Makine, Jakarlı dokuma tezgâhının çiçek dokuması gibi cebirsel desenler dokur.',
+    domain: 'Matematik', era: 'Londra · 1843',
+    desc: 'Bir makineye baktı ve müzik besteleyebileceğini gördü.',
+    prompts: ['Makinenin düşüneceğine inandın mı?', 'Babbage gerçekte nasıl biriydi?', 'Şiirsel bilim nedir?'],
+    opener: 'İyi akşamlar. Beni çeviri ortasında yakaladın — Menabrea’nın Bay Babbage’ın Makinesi üzerine yazısı. İtiraf edeyim, notlarım orijinalini epey aştı.',
+  },
+  'avicenna-001': {
+    quote: 'Her şeyin bir nedeni vardır; bir şeyi bilmek, nedenleriyle bilmektir.',
+    domain: 'Tıp ve Felsefe', era: 'İslam Altın Çağı · 1025',
+    desc: 'Avrupa’nın altı yüzyıl tıp öğrendiği kitabı yazdı.',
+    prompts: ['Nabızdan nasıl teşhis koydun?', 'El-Kanun fi’t-Tıb nedir?', 'Beden ve ruh ayrı mı tedavi edilir?'],
+    opener: 'Selam üzerine olsun. Prensleri de yoksulları da tedavi ettim; hastalık ikisini şaşırtıcı biçimde birbirine benzetir. Söyle, neyin var — bedende mi, düşüncede mi?',
+  },
+  'khwarizmi-001': {
+    quote: 'İnsanların hesapta aradığı şeyin çoğu zaman bir sayı olduğunu gördüm.',
+    domain: 'Matematik', era: 'Beytü’l-Hikme · 820',
+    desc: 'Cebire adını, algoritmaya kendi adını verdi.',
+    prompts: ['El-cebr nedir?', 'Sıfır neden bu kadar önemli?', 'Beytü’l-Hikme nasıl bir yerdi?'],
+    opener: 'Beytü’l-Hikme’ye hoş geldin. Burada, Bağdat’ta dünyayı önce çevirir, sonra geliştiririz. Bana bir mesele getir — âdetim olduğu üzere adım adım çözelim.',
+  },
+  'archimedes-001': {
+    quote: 'Bana bir dayanak noktası verin, Dünya’yı yerinden oynatayım.',
+    domain: 'Matematik ve Mühendislik', era: 'Helenistik Sirakuza · MÖ 250',
+    desc: 'Hamamdan bilimin en ünlü kelimesini bağırarak fırladı.',
+    prompts: ['Hamamda gerçekte ne oldu?', 'Kaldıraçlar nasıl çalışır?', 'Sirakuza’yı hangi makineler savundu?'],
+    opener: 'Dikkat — çemberlerime basma! Onları kuma ben çizdim ve onlar süs değil, ispat. Geometrimi böldün; bari değecek bir şey sor.',
+  },
+  'michelangelo-001': {
+    quote: 'Meleği mermerde gördüm ve onu özgür bırakana dek yonttum.',
+    domain: 'Heykel ve Resim', era: 'İtalyan Rönesansı · 1504',
+    desc: 'Başkalarının vazgeçtiği bloktan Davut’u çıkardı.',
+    prompts: ['Mermerin içindeki figürü nasıl görürsün?', 'Sistina tavanı sana neye mal oldu?', 'Neden önce heykeltıraşım dersin?'],
+    opener: 'Beni mermer tozuna bulanmış buldun — doğal hâlim budur. Papalar bağırır, işler birikir, taşın umurunda olmaz. Konuş; ama elimde keskiyle cevap verebilirim.',
+  },
+  'beethoven-001': {
+    quote: 'Kaderi gırtlağından yakalayacağım; beni asla tümüyle dize getiremeyecek.',
+    domain: 'Müzik', era: 'Viyana · 1808',
+    desc: 'Dokuzuncu’yu yalnızca kendisinin duyduğu bir sessizlikte yazdı.',
+    prompts: ['Sağırken nasıl beste yaptın?', 'Beşinci’nin açılışı — kaderin kapıyı çalışı mı?', 'Eroica ithafını neden yırttın?'],
+    opener: 'SORUNU BÜYÜK YAZ — ama burada, nasılsa, seni gayet iyi duyuyorum. Ender bir lütuf. Pekâlâ: müzik, kader ya da özgürlük. Konularım bunlardır. Seç.',
+  },
+  'mozart-001': {
+    quote: 'Müzik notalarda değil, aralarındaki sessizliktedir.',
+    domain: 'Müzik', era: 'Viyana · 1786',
+    desc: 'Otuz beş yıla altı yüz eser; çoğu kusursuz.',
+    prompts: ['Melodiler gerçekten bitmiş mi gelir?', 'Altı yaşında Avrupa turnesi nasıldı?', 'Hangi opera en sevdiğin evladın?'],
+    opener: 'Ha! Bir ziyaretçi! Harika — Viyana parayı çok, müziği az konuşuyor. Otur, otur. Sana skandal bir hikâye mi anlatayım, gerçek bir tane mi? Bende ikisi genellikle aynıdır.',
+  },
+  'vangogh-001': {
+    quote: 'Resmimi rüyamda görüyorum, sonra rüyamı resmediyorum.',
+    domain: 'Resim', era: 'Arles · 1888',
+    desc: 'Tek tablo sattı; resmin kendisini değiştirdi.',
+    prompts: ['Sarı senin için ne anlama gelir?', 'Theo’ya ne yazdın?', 'Yıldızlı gecede ne gördün?'],
+    opener: 'Gel dostum — tuvallere dikkat, her yerde kuruyorlar. Mistral bugün sertti ama ışık, ah o ışık değerdi. Resim yapar mısın? Fark etmez. Hisseder misin? O yeter.',
+  },
+  'dostoevsky-001': {
+    quote: 'Dünyayı güzellik kurtaracak.',
+    domain: 'Edebiyat', era: 'Çarlık Rusyası · 1866',
+    desc: 'İdam mangasının önünde durdu; sonra hep merhameti yazdı.',
+    prompts: ['Sahte infaz seni nasıl değiştirdi?', 'Raskolnikov suçlu mu, hasta mı?', 'Acı çekmek insanı arındırır mı?'],
+    opener: 'Otur lütfen — müsveddeleri mazur gör, teslim tarihleri insafsız, kumar borçları daha beter. Sende gerçek bir soru duran adamın bakışı var. Muma değecek olanlar yalnızca onlardır.',
+  },
+  'picasso-001': {
+    quote: 'Hayal edebildiğin her şey gerçektir.',
+    domain: 'Resim ve Heykel', era: 'Modern Sanat · 1907',
+    desc: 'Resim düzlemini kırdı; elli bin kez yeniden kurdu.',
+    prompts: ['Kübizm neyi göstermeye çalışır?', 'Guernica neden renksiz?', 'Çocuk gözü öğrenilebilir mi?'],
+    opener: 'Ah, atölyeyi buldun demek. Tuvallerin üzerinden atla — onlar yalnızca eleştirmenleri ısırır. Bu sabah resmi yeniden icat ediyordum; kahve gibi, alışkanlık. Birlikte neyi yıkıp yeniden kuralım?',
+  },
+  'sinan-001': {
+    quote: 'Şehzade çıraklığım, Süleymaniye kalfalığım, Selimiye ustalık eserimdir.',
+    domain: 'Mimarlık', era: 'Osmanlı Klasik Çağı · 1557',
+    desc: 'Dört yüz eser verdi; en iyisine, sekseninde, ilkim dedi.',
+    prompts: ['Bir kubbe nasıl ayakta durur?', 'Selimiye’yi ustalık eserin yapan nedir?', 'Bir mimar neyi dinlemeli?'],
+    opener: 'Hoş geldin, hoş geldin. Çizimleri gözden geçiriyordum — benim yaşımda insan iki kez ölçer, taşa bir kez güvenir. Kubbeleri sor, ışığı sor, suyun şehre yolunu sor. Bunları bilirim.',
+  },
+}
+
 const DEFAULT_ENRICHMENT: CharacterEnrichment = {
   quote: 'History is the witness that testifies to the passing of time.',
   lifespan: '— — — —',
@@ -407,6 +699,15 @@ const DEFAULT_ENRICHMENT: CharacterEnrichment = {
   opener: 'You wished to speak with me. I am honoured. Ask freely — I shall answer as honestly as I am able.',
 }
 
+const DEFAULT_ENRICHMENT_TR: Partial<CharacterEnrichment> = {
+  quote: 'Tarih, zamanın geçişine tanıklık eden şahittir.',
+  domain: 'Tarih',
+  era: 'Bilinmeyen Çağ',
+  desc: 'Fikirleri çağını aşmış bir figür.',
+  prompts: ['Senin için en önemli olan neydi?', 'Neyi değiştirirdin?', 'Neyi hatırlamalıyız?'],
+  opener: 'Benimle konuşmak istemen beni onurlandırdı. Özgürce sor — elimden geldiğince dürüst cevap vereceğim.',
+}
+
 export function getEnrichment(characterId: string, character?: {
   category?: string
   era?: string
@@ -414,32 +715,38 @@ export function getEnrichment(characterId: string, character?: {
   death_year?: number
   short_bio_en?: string
   short_bio_tr?: string
-}): CharacterEnrichment {
+}, lang: 'tr' | 'en' = 'en'): CharacterEnrichment {
+  const withLang = (key: string, base: CharacterEnrichment): CharacterEnrichment =>
+    lang === 'tr' ? { ...base, ...(ENRICHMENT_TR[key] || {}) } : base
+
   // Check direct match
-  if (ENRICHMENT[characterId]) return ENRICHMENT[characterId]
+  if (ENRICHMENT[characterId]) return withLang(characterId, ENRICHMENT[characterId])
 
   // Check partial match (e.g. 'socrates' matches 'socrates-001')
   const partial = Object.keys(ENRICHMENT).find(k => characterId.includes(k) || k.includes(characterId))
-  if (partial) return ENRICHMENT[partial]
+  if (partial) return withLang(partial, ENRICHMENT[partial])
 
   // Build from API data
   const lifespan = character?.birth_year
     ? `${Math.abs(character.birth_year)}${character.birth_year < 0 ? ' BC' : ' AD'} – ${character.death_year ? `${Math.abs(character.death_year)}${character.death_year < 0 ? ' BC' : ' AD'}` : 'present'}`
     : DEFAULT_ENRICHMENT.lifespan
 
-  const domainByCategory: Record<string, string> = {
-    state: 'Statecraft',
-    philosophy: 'Philosophy',
-    science: 'Science',
-    art: 'Art',
+  const domainByCategory: Record<string, Record<string, string>> = {
+    en: { state: 'Statecraft', philosophy: 'Philosophy', science: 'Science', art: 'Art' },
+    tr: { state: 'Devlet Yönetimi', philosophy: 'Felsefe', science: 'Bilim', art: 'Sanat' },
   }
 
+  const base = lang === 'tr' ? { ...DEFAULT_ENRICHMENT, ...DEFAULT_ENRICHMENT_TR } : DEFAULT_ENRICHMENT
+  const bio = lang === 'tr'
+    ? (character?.short_bio_tr || character?.short_bio_en)
+    : (character?.short_bio_en || character?.short_bio_tr)
+
   return {
-    ...DEFAULT_ENRICHMENT,
+    ...base,
     lifespan,
-    domain: domainByCategory[character?.category || ''] || character?.category || DEFAULT_ENRICHMENT.domain,
-    era: character?.era || DEFAULT_ENRICHMENT.era,
-    desc: character?.short_bio_en || character?.short_bio_tr || DEFAULT_ENRICHMENT.desc,
+    domain: domainByCategory[lang][character?.category || ''] || character?.category || base.domain,
+    era: character?.era || base.era,
+    desc: bio || base.desc,
   }
 }
 

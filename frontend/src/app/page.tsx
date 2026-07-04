@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { CandleAudio } from '@/components/histora/CandleAudio'
 import { sfx } from '@/lib/sounds'
+import { useLang, LangToggle } from '@/lib/i18n'
 
 // Deterministic pseudo-random for ember positions (avoids hydration mismatch)
 const EMBERS = Array.from({ length: 14 }, (_, i) => ({
@@ -15,6 +16,7 @@ const EMBERS = Array.from({ length: 14 }, (_, i) => ({
 
 export default function OnboardingPage() {
   const router = useRouter()
+  const { t } = useLang()
   const [stage, setStage] = useState(0)
   const [leaving, setLeaving] = useState(false)
 
@@ -59,33 +61,34 @@ export default function OnboardingPage() {
           ))}
         </div>
 
-        <div className="onb-mark intro-mark">
-          <span className="flame intro-flame" style={{ width: 8, height: 14, filter: 'blur(0.4px)', boxShadow: '0 0 14px var(--amber)' }} />
-          <span className="wordmark">Histora</span>
+        <div className="onb-mark intro-mark" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 12 }}>
+            <span className="flame intro-flame" style={{ width: 8, height: 14, filter: 'blur(0.4px)', boxShadow: '0 0 14px var(--amber)' }} />
+            <span className="wordmark">Histora</span>
+          </span>
+          <LangToggle onSwitch={() => sfx.click()} />
         </div>
 
         <div className="onb-center">
-          <div className="eyebrow onb-eyebrow intro-eyebrow">An evening with the past</div>
+          <div className="eyebrow onb-eyebrow intro-eyebrow">{t('intro.eyebrow')}</div>
           <h1 className="onb-title intro-title">
-            <span className="line">Speak with the minds</span>{' '}
-            <span className="line">that <em>shaped history.</em></span>
+            <span className="line">{t('intro.title.1')}</span>{' '}
+            <span className="line" dangerouslySetInnerHTML={{ __html: t('intro.title.2') }} />
           </h1>
-          <p className="onb-sub intro-sub">
-            Forty figures. Twenty-four centuries. One candle between you.
-          </p>
+          <p className="onb-sub intro-sub">{t('intro.sub')}</p>
           <button
             className="onb-cta quill intro-cta"
             onMouseEnter={() => sfx.hover()}
             onClick={enter}
           >
-            <span>Enter the gallery</span>
+            <span>{t('intro.cta')}</span>
             <span className="arrow">→</span>
           </button>
         </div>
 
         <div className="onb-foot intro-foot">
-          Leaders<span className="dot">·</span>Philosophers
-          <span className="dot">·</span>Scientists<span className="dot">·</span>Artists
+          {t('intro.foot.leaders')}<span className="dot">·</span>{t('intro.foot.philosophers')}
+          <span className="dot">·</span>{t('intro.foot.scientists')}<span className="dot">·</span>{t('intro.foot.artists')}
         </div>
       </main>
     </>

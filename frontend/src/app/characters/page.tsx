@@ -8,17 +8,13 @@ import { getEnrichment, GRID_SPANS } from '@/lib/characters'
 import { padCatalogNumber } from '@/lib/utils'
 import { CandleAudio } from '@/components/histora/CandleAudio'
 import { sfx } from '@/lib/sounds'
+import { useLang, LangToggle } from '@/lib/i18n'
 
-const FILTERS = [
-  ['all', 'All'],
-  ['philosophy', 'Philosophers'],
-  ['science', 'Scientists'],
-  ['art', 'Artists'],
-  ['state', 'Leaders'],
-] as const
+const FILTERS = ['all', 'philosophy', 'science', 'art', 'state'] as const
 
 export default function GalleryPage() {
   const router = useRouter()
+  const { t, lang } = useLang()
   const [characters, setCharacters] = useState<ApiCharacter[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
@@ -48,11 +44,12 @@ export default function GalleryPage() {
             <span className="flame" style={{ width: 7, height: 12, boxShadow: '0 0 10px var(--amber)' }} />
             <span>Histora</span>
           </Link>
-          <nav className="gal-nav">
-            <a href="#" className="active">Gallery</a>
-            <a href="#" onClick={e => { e.preventDefault(); setLayout(l => l === 'asymmetric' ? 'editorial' : 'asymmetric') }}>
-              {layout === 'asymmetric' ? 'Editorial view' : 'Sparse view'}
+          <nav className="gal-nav" style={{ alignItems: 'center' }}>
+            <a href="#" className="active">{t('gal.nav.gallery')}</a>
+            <a href="#" onClick={e => { e.preventDefault(); sfx.click(); setLayout(l => l === 'asymmetric' ? 'editorial' : 'asymmetric') }}>
+              {layout === 'asymmetric' ? t('gal.nav.editorial') : t('gal.nav.sparse')}
             </a>
+            <LangToggle onSwitch={() => sfx.click()} />
           </nav>
         </header>
 
@@ -60,33 +57,30 @@ export default function GalleryPage() {
 
         {/* Hero */}
         <section className="gal-hero">
-          <div className="eyebrow">The Gallery · Vol. I</div>
+          <div className="eyebrow">{t('gal.eyebrow')}</div>
           <h1>
-            Speak with the minds that <em>shaped history.</em>
+            {t('gal.title.1')} <em>{t('gal.title.2')}</em>
           </h1>
-          <p className="sub">
-            Figures from the agora of Athens to a Mexico City studio.
-            Choose one and sit a while.
-          </p>
+          <p className="sub">{t('gal.sub')}</p>
         </section>
 
         {/* Filters */}
         <div className="gal-meta">
           <div className="filters">
-            {FILTERS.map(([k, l]) => (
+            {FILTERS.map(k => (
               <button
                 key={k}
                 className={filter === k ? 'on' : ''}
                 onMouseEnter={() => sfx.hover()}
                 onClick={() => { sfx.click(); setFilter(k) }}
               >
-                {l}
+                {t(('gal.filter.' + k) as Parameters<typeof t>[0])}
               </button>
             ))}
           </div>
           <div>
-            {loading ? '—' : String(filtered.length).padStart(2, '0')} figures ·{' '}
-            {layout === 'asymmetric' ? 'Sparse' : 'Editorial'} view
+            {loading ? '—' : String(filtered.length).padStart(2, '0')} {t('gal.figures')} ·{' '}
+            {layout === 'asymmetric' ? t('gal.view.sparse') : t('gal.view.editorial')} {t('gal.view')}
           </div>
         </div>
 
@@ -105,7 +99,7 @@ export default function GalleryPage() {
         {!loading && (
           <div className={`gal-grid ${layout}`}>
             {filtered.map((c, i) => {
-              const enrichment = getEnrichment(c.id, c)
+              const enrichment = getEnrichment(c.id, c, lang)
               const spans = layout === 'asymmetric' ? (GRID_SPANS[i % 9] || {}) : {}
               const catNo = padCatalogNumber(characters.findIndex(x => x.id === c.id) + 1)
 
@@ -168,7 +162,7 @@ export default function GalleryPage() {
 
         {!loading && filtered.length === 0 && (
           <div style={{ textAlign: 'center', padding: '80px 0', color: 'var(--ivory-faint)' }}>
-            <div className="eyebrow">No figures found</div>
+            <div className="eyebrow">{t('gal.empty')}</div>
           </div>
         )}
       </main>

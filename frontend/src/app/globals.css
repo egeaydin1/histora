@@ -389,3 +389,10 @@ body::after {
 
 .onb.intro { position: relative; }
 .onb.intro .onb-mark, .onb.intro .onb-center, .onb.intro .onb-foot { position: relative; z-index: 1; }
+
+/* ── LANGUAGE TOGGLE ── */
+.lang-toggle { display: inline-flex; align-items: center; gap: 8px; font-family: var(--sans); font-size: 10px; letter-spacing: 0.24em; }
+.lang-toggle .sep { color: var(--ivory-faint); opacity: 0.5; }
+.lang-toggle button { background: none; border: 0; padding: 2px; cursor: pointer; color: var(--ivory-faint); font: inherit; letter-spacing: inherit; transition: color .3s ease; }
+.lang-toggle button:hover { color: var(--ivory); }
+.lang-toggle button.on { color: var(--gold); }
