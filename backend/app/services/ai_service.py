@@ -174,11 +174,12 @@ Türkçe konuş ve karakterine uygun yanıtlar ver. Bazen Çince atasözleri çe
         # Try primary + backup, then a chain of free fallbacks.
         # Free models get rate-limited upstream (429) often, so a wide chain
         # plus one short retry keeps chat alive without paid usage.
+        # Note: nemotron models are excluded — they leak chain-of-thought
+        # into the response content, which breaks the in-character illusion.
         free_fallbacks = [
             "nousresearch/hermes-3-llama-3.1-405b:free",
             "openai/gpt-oss-120b:free",
             "google/gemma-4-31b-it:free",
-            "nvidia/nemotron-3-super-120b-a12b:free",
         ]
         models_to_try = [self.settings.default_ai_model, self.settings.backup_ai_model]
         models_to_try += [m for m in free_fallbacks if m not in models_to_try]
