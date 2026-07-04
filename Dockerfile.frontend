@@ -1,10 +1,10 @@
-# ── Stage 1: install dependencies ───────────────────────────────────────────
+# ── Stage 1: install all dependencies for build ──────────────────────────────
 FROM node:20-alpine AS deps
 
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 COPY frontend/package.json frontend/package-lock.json ./
-RUN npm ci --omit=dev
+RUN npm ci
 
 # ── Stage 2: build ───────────────────────────────────────────────────────────
 FROM node:20-alpine AS builder
@@ -13,7 +13,6 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY frontend/ .
 
-# Build args injected at build time
 ARG NEXT_PUBLIC_API_URL
 ARG NEXT_PUBLIC_FIREBASE_API_KEY
 ARG NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
@@ -43,14 +42,16 @@ ENV NODE_ENV=production \
 RUN addgroup --system --gid 1001 nodejs \
     && adduser --system --uid 1001 nextjs
 
-COPY --from=builder /app/public ./public
+# outputFileTracingRoot='..' nests the standalone output under app/
+# so server.js lives at app/server.js and expects static at app/.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./app/.next/static
+COPY --from=builder /app/public ./app/public
 
 USER nextjs
 EXPOSE 3000
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
-    CMD wget -qO- http://localhost:3000/api/health 2>/dev/null || exit 1
+    CMD wget -qO- http://localhost:3000 2>/dev/null || exit 1
 
-CMD ["node", "server.js"]
+CMD ["node", "app/server.js"]
