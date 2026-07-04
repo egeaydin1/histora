@@ -302,7 +302,20 @@ Türkçe konuş ve karakterine uygun yanıtlar ver. Bazen Çince atasözleri çe
             ]
         }
         
-        responses = mock_responses.get(character_id, mock_responses["ataturk-001"])
+        # Unknown character → stay in a neutral, in-mood voice instead of
+        # answering with another figure's lines (models may be rate-limited).
+        if character_id not in mock_responses:
+            return AIResponse(
+                content=(
+                    "Bir an izin ver — düşüncelerim dağıldı. Salondaki mumlar titredi. "
+                    "Biraz sonra tekrar sorarsan, sana hakkıyla cevap vereceğim."
+                ),
+                character_id=character_id,
+                model_used="unavailable-retry",
+                response_time=time.time() - start_time,
+            )
+
+        responses = mock_responses[character_id]
         
         # Select response based on message content for more realism
         import random
