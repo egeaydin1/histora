@@ -47,6 +47,7 @@ class CategoryResponse(BaseModel):
     character_count: int
 
 
+@router.get("", response_model=List[CharacterResponse], include_in_schema=False)
 @router.get("/", response_model=List[CharacterResponse])
 async def get_characters(
     category: Optional[str] = Query(None, description="Filter by category"),
