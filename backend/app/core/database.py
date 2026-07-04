@@ -207,9 +207,52 @@ async def init_database():
         if not tables_created:
             logger.error("Failed to create database tables")
             return False
-    
+
+    # Sync the character catalogue so FK references (chat_sessions) resolve
+    try:
+        await sync_seed_characters()
+    except Exception as e:
+        logger.error("Character seed sync failed", error=str(e))
+
     logger.info("Database initialized successfully")
     return True
+
+
+async def sync_seed_characters():
+    """Upsert seed catalogue characters into the characters table."""
+    from sqlalchemy import select
+    from app.models.database import Character
+    from app.data.characters_seed import CHARACTERS
+
+    session_factory = db_manager.get_async_session_factory()
+    async with session_factory() as session:
+        result = await session.execute(select(Character.id))
+        existing = {row[0] for row in result}
+
+        added = 0
+        for c in CHARACTERS:
+            if c["id"] in existing:
+                continue
+            session.add(Character(
+                id=c["id"],
+                name=c["name"],
+                title=c.get("short_bio_tr"),
+                birth_year=c.get("birth_year"),
+                death_year=c.get("death_year"),
+                nationality=c.get("birth_place"),
+                category=c["category"],
+                description=c.get("short_bio_tr"),
+                avatar_url=c.get("avatar_url"),
+                system_prompt=c.get("system_prompt"),
+                personality_traits=c.get("personality_traits"),
+                supported_languages=["tr", "en"],
+                is_published=True,
+                is_featured=c.get("is_featured", False),
+            ))
+            added += 1
+        if added:
+            await session.commit()
+        logger.info("Character seed sync complete", added=added, total=len(CHARACTERS))
 
 async def cleanup_database():
     """Cleanup database connections."""
