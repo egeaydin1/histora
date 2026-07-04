@@ -74,10 +74,17 @@ def create_app() -> FastAPI:
     )
     
     # Trusted Host Middleware (production security)
+    # Starlette strips the port before matching, so extract only the hostname.
     if settings.is_production:
+        backend_host = (
+            settings.backend_url
+            .replace("https://", "")
+            .replace("http://", "")
+            .split(":")[0]  # drop port — starlette compares hostname only
+        )
         app.add_middleware(
-            TrustedHostMiddleware, 
-            allowed_hosts=[settings.backend_url.replace("http://", "").replace("https://", "")]
+            TrustedHostMiddleware,
+            allowed_hosts=[backend_host, "localhost", "127.0.0.1"],
         )
     
     # Request timing middleware
