@@ -3,7 +3,7 @@ Chat endpoints for conversations with historical characters.
 """
 
 import time
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from pydantic import BaseModel
 from typing import List, Optional
 import uuid
@@ -65,6 +65,70 @@ class ChatSession(BaseModel):
     created_at: datetime
     language: str
     mode: str
+
+
+class DemoChatRequest(BaseModel):
+    """Anonymous demo chat request — history is kept client-side."""
+    character_id: str
+    message: str
+    history: Optional[List[ChatMessage]] = None
+    language: str = "tr"
+
+
+# Server-side backstop for the anonymous demo: per-IP daily message counter.
+# The real 30-message demo limit lives in the frontend (localStorage); this
+# just prevents someone hammering the open endpoint with curl.
+_demo_usage: dict = {}
+DEMO_DAILY_LIMIT = 60
+
+
+@router.post("/demo", response_model=ChatResponse)
+async def send_demo_message(
+    chat_request: DemoChatRequest,
+    request: Request,
+    ai_service: AIService = Depends(get_ai_service),
+):
+    """Anonymous demo chat — no account needed, no persistence."""
+    ip = request.client.host if request.client else "unknown"
+    today = datetime.now().strftime("%Y-%m-%d")
+    count, day = _demo_usage.get(ip, (0, today))
+    if day != today:
+        count = 0
+    if count >= DEMO_DAILY_LIMIT:
+        raise HTTPException(
+            status_code=429,
+            detail="Demo limit reached for today. Please sign in to continue.",
+        )
+
+    character = lookup_seed_character(chat_request.character_id)
+    if not character:
+        raise HTTPException(status_code=404, detail=f"Character '{chat_request.character_id}' not found")
+
+    if len(chat_request.message) > 2000:
+        raise HTTPException(status_code=400, detail="Message too long")
+
+    start_time = time.time()
+    ai_response = await ai_service.get_character_response(
+        character_id=chat_request.character_id,
+        user_message=chat_request.message,
+        chat_history=(chat_request.history or [])[-10:],
+        language=chat_request.language,
+        system_prompt_override=character["system_prompt"],
+    )
+    _demo_usage[ip] = (count + 1, today)
+
+    return ChatResponse(
+        session_id="demo",
+        character_id=chat_request.character_id,
+        message=chat_request.message,
+        response=ai_response.content,
+        language=chat_request.language,
+        mode="demo",
+        timestamp=datetime.now(),
+        model_used=ai_response.model_used,
+        response_time=time.time() - start_time,
+        usage=None,
+    )
 
 
 @router.post("/send", response_model=ChatResponse)

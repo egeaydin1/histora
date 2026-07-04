@@ -74,6 +74,22 @@ export const api = {
   getCharacter: (id: string) =>
     request<ApiCharacter>(`/characters/${id}`),
 
+  sendDemoMessage: (payload: {
+    character_id: string
+    message: string
+    history?: { role: 'user' | 'assistant'; content: string }[]
+    language?: string
+  }) =>
+    request<ChatApiResponse>('/chat/demo', {
+      method: 'POST',
+      body: JSON.stringify({
+        character_id: payload.character_id,
+        message: payload.message,
+        history: payload.history || [],
+        language: payload.language || 'en',
+      }),
+    }),
+
   sendMessage: (payload: ChatRequest) =>
     request<ChatApiResponse>('/chat/send', {
       method: 'POST',

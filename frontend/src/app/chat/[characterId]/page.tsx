@@ -16,6 +16,15 @@ interface Msg {
   text: string | string[]
 }
 
+// Anonymous demo: this many free messages before sign-in is required.
+const DEMO_LIMIT = 30
+const DEMO_KEY = 'histora_demo_used'
+
+function getDemoUsed(): number {
+  if (typeof window === 'undefined') return 0
+  return parseInt(localStorage.getItem(DEMO_KEY) || '0', 10) || 0
+}
+
 export default function ChatPage() {
   const { characterId } = useParams<{ characterId: string }>()
   const router = useRouter()
@@ -27,6 +36,9 @@ export default function ChatPage() {
   const [typing, setTyping] = useState(false)
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [loadError, setLoadError] = useState('')
+  const [demoUsed, setDemoUsed] = useState(0)
+
+  useEffect(() => { setDemoUsed(getDemoUsed()) }, [])
 
   const scrollRef = useRef<HTMLDivElement>(null)
   const taRef = useRef<HTMLTextAreaElement>(null)
@@ -62,6 +74,17 @@ export default function ChatPage() {
     const clean = text.trim()
     if (!clean || !character) return
 
+    // Anonymous visitors get a free demo allowance before sign-in is required
+    if (!user && getDemoUsed() >= DEMO_LIMIT) {
+      sfx.click()
+      setMessages(m => [...m, {
+        id: generateId(),
+        role: 'figure',
+        text: `Our demo conversation has reached its end — ${DEMO_LIMIT} messages, and you have used them well. Sign in, and we may speak without limits.`,
+      }])
+      return
+    }
+
     sfx.send()
     setMessages(m => [...m, { id: generateId(), role: 'user', text: clean }])
     setDraft('')
@@ -69,17 +92,38 @@ export default function ChatPage() {
     sfx.thinkStart()
 
     if (!user) {
-      // Not logged in — show friendly auth prompt after a brief delay
-      setTimeout(() => {
+      // Demo mode — stateless chat, history sent from the client
+      const history = messages
+        .filter(m => typeof m.text === 'string')
+        .map(m => ({
+          role: (m.role === 'figure' ? 'assistant' : 'user') as 'assistant' | 'user',
+          content: m.text as string,
+        }))
+
+      const { data, error } = await api.sendDemoMessage({
+        character_id: character.id,
+        message: clean,
+        history,
+        language: 'en',
+      })
+
+      if (error || !data) {
         setMessages(m => [...m, {
           id: generateId(),
           role: 'figure',
-          text: 'I would gladly continue our conversation — but first, you must introduce yourself. Please sign in to speak with me.',
+          text: error?.includes('429') || error?.toLowerCase().includes('limit')
+            ? 'The demo hours of the gallery are over for today. Sign in, and we may continue.'
+            : 'A worthy question. Let me sit with it a moment. (I appear to have lost my train of thought — please try again.)',
         }])
-        setTyping(false)
-        sfx.thinkStop()
-        sfx.receive()
-      }, 1200)
+      } else {
+        const used = getDemoUsed() + 1
+        localStorage.setItem(DEMO_KEY, String(used))
+        setDemoUsed(used)
+        setMessages(m => [...m, { id: generateId(), role: 'figure', text: data.response }])
+      }
+      setTyping(false)
+      sfx.thinkStop()
+      sfx.receive()
       return
     }
 
@@ -104,7 +148,7 @@ export default function ChatPage() {
     setTyping(false)
     sfx.thinkStop()
     sfx.receive()
-  }, [character, sessionId, user])
+  }, [character, sessionId, user, messages])
 
   const enrichment = character ? getEnrichment(character.id, character) : null
   const catNo = character ? padCatalogNumber(1) : '001'
@@ -218,10 +262,14 @@ export default function ChatPage() {
             </div>
           )}
 
-          {/* Auth banner for unauthenticated users */}
+          {/* Demo banner for unauthenticated users */}
           {!user && (
             <div className="auth-banner">
-              <span>Sign in to have a real conversation with {character.name.split(' ')[0]}.</span>
+              <span>
+                {demoUsed < DEMO_LIMIT
+                  ? <>Demo conversation · <b style={{ color: 'var(--gold)' }}>{DEMO_LIMIT - demoUsed}</b> of {DEMO_LIMIT} messages left</>
+                  : <>Demo limit reached — sign in to keep talking with {character.name.split(' ')[0]}.</>}
+              </span>
               <span>
                 <Link href="/login">Sign in</Link>
                 {' '}&nbsp;·&nbsp;{' '}
