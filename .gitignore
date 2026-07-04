@@ -24,6 +24,8 @@ eggs/
 .eggs/
 lib/
 lib64/
+# Allow frontend src/lib (Next.js library code — not a Python venv)
+!frontend/src/lib/
 parts/
 sdist/
 var/
