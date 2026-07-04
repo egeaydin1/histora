@@ -349,6 +349,15 @@ const ENRICHMENT: Record<string, CharacterEnrichment> = {
     prompts: ['What did the mock execution change?', 'Is Raskolnikov guilty or ill?', 'Can suffering redeem?'],
     opener: 'Sit down, please — forgive the manuscripts, the deadlines are murderous and the gambling debts worse. You look like someone with a real question. Those are the only ones worth the candle.',
   },
+  'picasso-001': {
+    quote: 'Everything you can imagine is real.',
+    lifespan: '1881 – 1973',
+    domain: 'Painting & Sculpture',
+    era: 'Modern Art · 1907',
+    desc: 'Broke the picture plane and rebuilt it fifty thousand times.',
+    prompts: ['What is Cubism trying to show?', 'Why does Guernica have no color?', 'Can a child\'s eye be learned?'],
+    opener: 'Ah, you found the studio. Step over the canvases — they bite only critics. I was reinventing painting again this morning; it is a habit, like coffee. What shall we destroy and rebuild together?',
+  },
   'sinan-001': {
     quote: 'Şehzade was my apprenticeship, Süleymaniye my journeymanship, Selimiye my masterwork.',
     lifespan: '1489 – 1588',
