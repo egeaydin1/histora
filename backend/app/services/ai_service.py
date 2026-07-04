@@ -171,21 +171,38 @@ Türkçe konuş ve karakterine uygun yanıtlar ver. Bazen Çince atasözleri çe
             await asyncio.sleep(1.0 + (len(user_message) * 0.01))  # Realistic delay
             return await self._get_mock_response(character_id, user_message, start_time)
         
-        # Try primary model first, then fallback model
+        # Try primary + backup, then a chain of free fallbacks.
+        # Free models get rate-limited upstream (429) often, so a wide chain
+        # plus one short retry keeps chat alive without paid usage.
+        free_fallbacks = [
+            "nousresearch/hermes-3-llama-3.1-405b:free",
+            "openai/gpt-oss-120b:free",
+            "google/gemma-4-31b-it:free",
+            "nvidia/nemotron-3-super-120b-a12b:free",
+        ]
         models_to_try = [self.settings.default_ai_model, self.settings.backup_ai_model]
-        
-        for model in models_to_try:
-            try:
-                response = await self._make_api_call(
-                    character_id, user_message, chat_history, 
-                    system_prompt_override, model, start_time
-                )
-                if response:
-                    return response
-            except Exception as e:
-                print(f"Failed with model {model}: {e}")
-                continue
-        
+        models_to_try += [m for m in free_fallbacks if m not in models_to_try]
+
+        saw_rate_limit = False
+        for attempt in range(2):
+            if attempt == 1:
+                if not saw_rate_limit:
+                    break
+                await asyncio.sleep(8)  # let upstream limits cool off, then retry chain
+            for model in models_to_try:
+                try:
+                    response = await self._make_api_call(
+                        character_id, user_message, chat_history,
+                        system_prompt_override, model, start_time
+                    )
+                    if response:
+                        return response
+                except Exception as e:
+                    if "429" in str(e):
+                        saw_rate_limit = True
+                    print(f"Failed with model {model}: {e}")
+                    continue
+
         # If all models fail, use mock response
         print("All AI models failed, falling back to mock response")
         return await self._get_mock_response(character_id, user_message, start_time)
