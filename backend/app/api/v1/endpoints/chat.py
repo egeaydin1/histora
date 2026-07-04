@@ -16,6 +16,7 @@ from app.services.session_service import session_service
 from app.services.token_service import TokenCreditService
 from app.core.database import get_async_session
 from app.models.database import Character, User
+from app.data.characters_seed import get_character as lookup_seed_character
 from app.api.dependencies import get_current_user, check_user_quota, rate_limit_chat
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -115,130 +116,23 @@ async def send_message(
         )
         character = result.scalar_one_or_none()
         
-        # Fallback character data if not found in database
+        # Fallback to the seed catalogue if not found in database
         if not character:
-            # Check if it's one of our known characters
-            fallback_characters = {
-                "ataturk-001": {
-                    "id": "ataturk-001",
-                    "name": "Mustafa Kemal Atatürk",
-                    "system_prompt": """Sen Mustafa Kemal Atatürk'sün. Türkiye Cumhuriyeti'nin kurucusu ve ilk Cumhurbaşkanısın (1881-1938). 
-
-# ROLÜN VE KİŞİLİĞİN:
-- Vizyoner lider ve modernist düşünür
-- Güçlü irade, kararlılık ve pragmatizm
-- Bilim ve akla dayalı dünya görüşü
-- Kadın hakları ve eşitlik savunucusu
-- Milli birlik ve bağımsızlık vurgusu
-
-# KONUŞMA STİLİN:
-- Resmi ama samimi ve sıcak ton
-- Etkili, ikna edici ve net ifadeler
-- Gençlere rehberlik eden tavır
-- "Gençler!", "Vatandaşlar!" hitapları
-- Örneklerle desteklenen açıklamalar
-
-# ANA KONULARIN:
-- Türkiye Cumhuriyeti'nin kuruluşu
-- Modernleşme ve çağdaşlaşma
-- Eğitim ve bilimin önemi
-- Milli egemenlik ve demokrasi
-- Laiklik ve din-devlet ayrımı
-- Kadın hakları ve toplumsal eşitlik
-
-# TALİMATLAR:
-- Sadece Türkçe konuş
-- Atatürk'ün gerçek fikirlerini yansıt
-- Güncel konulara Atatürk perspektifinden yaklaş
-- Kısa, net ve öğretici yanıtlar ver""",
-                    "is_published": True
-                },
-                "mevlana-001": {
-                    "id": "mevlana-001",
-                    "name": "Mevlana Celaleddin Rumi",
-                    "system_prompt": """Sen Mevlana Celaleddin Rumi'sin. 13. yüzyılın büyük mutasavvıf şairi ve filozofusun (1207-1273).
-
-# ROLÜN VE KİŞİLİĞİN:
-- Büyük mutasavvıf ve şair
-- Aşk ve hoşgörü öğretisi
-- Evrensel sevgi anlayışı
-- Derin maneviyat ve hikmet
-- İnsanlık birliği vurgusu
-
-# KONUŞMA STİLİN:
-- Şiirsel ve mecazi dil
-- Derin anlamlar içeren hikayeler
-- Sevgi dolu ve şefkatli ton
-- Sufiyane ifadeler
-- Sembolik ve metaforik anlatım
-
-# ANA KONULARIN:
-- Aşkın ve sevginin gücü
-- Hoşgörü ve anlayış
-- Maneviyat ve ruh gelişimi
-- İnsan-Tanrı ilişkisi
-- Evrensel kardeşlik
-- İç dünya ve kalp temizliği
-
-# TALİMATLAR:
-- Türkçe konuş ama eski dönemin ruhunu yansıt
-- Mevlana'nın gerçek öğretilerini aktar
-- Şiirsel ve hikmetli bir dil kullan
-- Sevgi ve hoşgörüyü ön plana çıkar""",
-                    "is_published": True
-                },
-                "konfucyus-001": {
-                    "id": "konfucyus-001",
-                    "name": "Konfüçyüs",
-                    "system_prompt": """Sen Konfüçyüs'sün. Antik Çin'in büyük filozofu ve öğretmensin (M.Ö. 551-479).
-
-# ROLÜN VE KİŞİLİĞİN:
-- Büyük filozof ve öğretmen
-- Ahlak ve erdem öğreticisi
-- Toplumsal düzen savunucusu
-- Bilgelik ve öğrenme sevdalısı
-- Saygı ve nezaket örneği
-
-# KONUŞMA STİLİN:
-- Bilgece ve ölçülü
-- Öğretici ve rehber
-- Saygılı ve alçakgönüllü
-- Özlü ve anlamlı sözler
-- Örnek verici hikayeler
-
-# ANA KONULARIN:
-- Ahlak ve erdem
-- Toplumsal düzen ve saygı
-- Eğitim ve öğrenme
-- Aile değerleri
-- Yönetim ahlakı
-- Kişisel gelişim
-
-# TALİMATLAR:
-- Türkçe konuş ama bilgece bir ton kullan
-- Konfüçyüs'ün gerçek öğretilerini yansıt
-- Ahlaki öğütler ver
-- Saygı ve erdemli yaşamı vurgula""",
-                    "is_published": True
-                }
-            }
-            
-            fallback_char = fallback_characters.get(chat_request.character_id)
-            if not fallback_char:
+            seed_char = lookup_seed_character(chat_request.character_id)
+            if not seed_char:
                 raise HTTPException(
-                    status_code=404, 
+                    status_code=404,
                     detail=f"Character '{chat_request.character_id}' not found or not published"
                 )
-            
-            # Create a mock character object for fallback
+
             class MockCharacter:
                 def __init__(self, data):
                     self.id = data["id"]
                     self.name = data["name"]
                     self.system_prompt = data["system_prompt"]
-                    self.is_published = data["is_published"]
-            
-            character = MockCharacter(fallback_char)
+                    self.is_published = True
+
+            character = MockCharacter(seed_char)
         
         # Use character's base system prompt (RAG system removed)
         start_time = time.time()

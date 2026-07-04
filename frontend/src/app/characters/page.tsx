@@ -7,6 +7,7 @@ import { api, ApiCharacter } from '@/lib/api'
 import { getEnrichment, GRID_SPANS } from '@/lib/characters'
 import { padCatalogNumber } from '@/lib/utils'
 import { CandleAudio } from '@/components/histora/CandleAudio'
+import { sfx } from '@/lib/sounds'
 
 const FILTERS = [
   ['all', 'All'],
@@ -76,7 +77,8 @@ export default function GalleryPage() {
               <button
                 key={k}
                 className={filter === k ? 'on' : ''}
-                onClick={() => setFilter(k)}
+                onMouseEnter={() => sfx.hover()}
+                onClick={() => { sfx.click(); setFilter(k) }}
               >
                 {l}
               </button>
@@ -104,7 +106,7 @@ export default function GalleryPage() {
           <div className={`gal-grid ${layout}`}>
             {filtered.map((c, i) => {
               const enrichment = getEnrichment(c.id, c)
-              const spans = layout === 'asymmetric' ? (GRID_SPANS[i] || {}) : {}
+              const spans = layout === 'asymmetric' ? (GRID_SPANS[i % 9] || {}) : {}
               const catNo = padCatalogNumber(characters.findIndex(x => x.id === c.id) + 1)
 
               return (
@@ -115,13 +117,26 @@ export default function GalleryPage() {
                     gridColumn: spans.col,
                     gridRow: spans.row,
                   }}
-                  onClick={() => router.push(`/chat/${c.id}`)}
+                  onMouseEnter={() => sfx.hover()}
+                  onClick={() => { sfx.click(); router.push(`/chat/${c.id}`) }}
                 >
                   <article className="plate">
                     <div className="plate-top">
                       <span className="era">{enrichment.era || c.era}</span>
                       <span className="catno">№&nbsp;{catNo}</span>
                     </div>
+
+                    {c.avatar_url && (
+                      <div className="plate-photo">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={c.avatar_url}
+                          alt={c.name}
+                          loading="lazy"
+                          onError={e => { (e.currentTarget.parentElement as HTMLElement).style.display = 'none' }}
+                        />
+                      </div>
+                    )}
 
                     <div className="plate-name">
                       <h3>{c.name}</h3>

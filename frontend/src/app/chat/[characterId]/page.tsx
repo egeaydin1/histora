@@ -8,6 +8,7 @@ import { getEnrichment } from '@/lib/characters'
 import { padCatalogNumber, generateId } from '@/lib/utils'
 import { CandleAudio } from '@/components/histora/CandleAudio'
 import { useAuth } from '@/contexts/AuthContext'
+import { sfx } from '@/lib/sounds'
 
 interface Msg {
   id: string
@@ -61,9 +62,11 @@ export default function ChatPage() {
     const clean = text.trim()
     if (!clean || !character) return
 
+    sfx.send()
     setMessages(m => [...m, { id: generateId(), role: 'user', text: clean }])
     setDraft('')
     setTyping(true)
+    sfx.thinkStart()
 
     if (!user) {
       // Not logged in — show friendly auth prompt after a brief delay
@@ -74,6 +77,8 @@ export default function ChatPage() {
           text: 'I would gladly continue our conversation — but first, you must introduce yourself. Please sign in to speak with me.',
         }])
         setTyping(false)
+        sfx.thinkStop()
+        sfx.receive()
       }, 1200)
       return
     }
@@ -97,6 +102,8 @@ export default function ChatPage() {
       setMessages(m => [...m, { id: generateId(), role: 'figure', text: data.response }])
     }
     setTyping(false)
+    sfx.thinkStop()
+    sfx.receive()
   }, [character, sessionId, user])
 
   const enrichment = character ? getEnrichment(character.id, character) : null
@@ -136,6 +143,17 @@ export default function ChatPage() {
               <span className="catno">№&nbsp;{catNo}</span>
             </div>
 
+            {character.avatar_url && (
+              <div className="aside-photo">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={character.avatar_url}
+                  alt={character.name}
+                  onError={e => { (e.currentTarget.parentElement as HTMLElement).style.display = 'none' }}
+                />
+              </div>
+            )}
+
             <div className="aside-era">{enrichment?.era}</div>
             <h2 className="aside-name">{character.name}</h2>
 
@@ -168,7 +186,7 @@ export default function ChatPage() {
               <span>Begun this evening</span>
             </div>
             <div className="actions">
-              <button onClick={() => router.push('/characters')}>Close</button>
+              <button onMouseEnter={() => sfx.hover()} onClick={() => { sfx.click(); router.push('/characters') }}>Close</button>
             </div>
           </header>
 
@@ -192,7 +210,7 @@ export default function ChatPage() {
               <div className="label">Ask {character.name.split(' ')[0]} about</div>
               <div className="chips">
                 {enrichment.prompts.map((p, i) => (
-                  <button key={i} className="chip quill" onClick={() => send(p)}>
+                  <button key={i} className="chip quill" onMouseEnter={() => sfx.hover()} onClick={() => send(p)}>
                     {p}
                   </button>
                 ))}
